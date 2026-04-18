@@ -37,7 +37,7 @@ class _PhysicalSimPageState extends ConsumerState<PhysicalSimPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Activate physical SIM'),
+        title: const Text('Activate PCCW SIM'),
         backgroundColor: AppColors.background,
         elevation: 0,
       ),
@@ -56,7 +56,7 @@ class _PhysicalSimPageState extends ConsumerState<PhysicalSimPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    '1. Find your SIM ICCID',
+                    '1. Find your PCCW SIM ICCID',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -65,7 +65,7 @@ class _PhysicalSimPageState extends ConsumerState<PhysicalSimPage> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'It is the 18–22 digit number printed on the back of the card.',
+                    'It is the 18–22 digit number printed next to the barcode on the back of the card.',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,

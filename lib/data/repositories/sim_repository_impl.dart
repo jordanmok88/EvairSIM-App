@@ -41,9 +41,15 @@ class SimRepositoryImpl implements SimRepository {
       });
 
   @override
-  Future<Either<Failure, Unit>> bindSim({required String iccid}) =>
+  Future<Either<Failure, Unit>> bindSim({
+    required String iccid,
+    String? activationCode,
+  }) =>
       _guard(() async {
-        final resp = await _api.bindSim(iccid: iccid);
+        final resp = await _api.bindSim(
+          iccid: iccid,
+          activationCode: activationCode,
+        );
         ResponseEnvelope.throwIfError(resp);
         return unit;
       });

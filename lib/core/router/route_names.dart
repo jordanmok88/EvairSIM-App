@@ -7,12 +7,20 @@ abstract class RouteNames {
   // Main tabs
   static const String shop = '/shop';
   static const String mySims = '/my-sims';
-  static const String physicalSim = '/physical-sim';
   static const String profile = '/profile';
 
+  // Activation flows (primary product surfaces post-April-2026 pivot)
+  /// PCCW physical SIM activation wizard (Scan → Confirm → Done).
+  static const String physicalSim = '/physical-sim';
+
+  /// Red Tea eSIM "connect" — user pastes an ICCID + LPA code they
+  /// received via email / admin portal to add the eSIM to their account.
+  static const String connectEsim = '/connect-esim';
+
   // Shop sub-routes
-  /// Base path for country-specific package listing. Full path: `/shop/country/:code`.
-  static const String countryPackages = '/shop/country';
+  // NOTE: `countryPackages` route removed in the April 2026 pivot — the app
+  // no longer sells eSIMs by country. Use `physicalSim` or `connectEsim`
+  // instead, depending on the SIM type.
 
   // Checkout sub-routes
   static const String checkout = '/checkout';

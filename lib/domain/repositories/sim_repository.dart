@@ -12,7 +12,13 @@ abstract class SimRepository {
 
   Future<Either<Failure, Sim>> esimUsage(String iccid);
 
-  Future<Either<Failure, Unit>> bindSim({required String iccid});
+  /// Binds a SIM to the current user. Works for both PCCW physical SIMs
+  /// (just [iccid]) and Red Tea eSIMs ([iccid] + optional [activationCode]
+  /// parsed from an LPA string).
+  Future<Either<Failure, Unit>> bindSim({
+    required String iccid,
+    String? activationCode,
+  });
 
   Future<Either<Failure, Unit>> unbindSim({required String iccid});
 

@@ -19,10 +19,21 @@ class SimApi {
   Future<Response<Map<String, dynamic>>> esimUsage(String iccid) =>
       _dio.get<Map<String, dynamic>>('$_h5/esim/$iccid/usage');
 
-  Future<Response<Map<String, dynamic>>> bindSim({required String iccid}) =>
+  /// Binds a SIM (PCCW physical OR Red Tea eSIM) to the current user.
+  /// [activationCode] is optional and only relevant for eSIMs — the backend
+  /// currently stores it for reference (the check is marked TODO in
+  /// `AppUserController::bindSim`).
+  Future<Response<Map<String, dynamic>>> bindSim({
+    required String iccid,
+    String? activationCode,
+  }) =>
       _dio.post<Map<String, dynamic>>(
         '$_app/users/bind-sim',
-        data: {'iccid': iccid},
+        data: {
+          'iccid': iccid,
+          if (activationCode != null && activationCode.isNotEmpty)
+            'activation_code': activationCode,
+        },
       );
 
   Future<Response<Map<String, dynamic>>> unbindSim({required String iccid}) =>

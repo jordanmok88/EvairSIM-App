@@ -1,109 +1,81 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/constants/popular_countries.dart';
-import '../../../core/i18n/app_strings.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../domain/entities/country.dart';
 import '../../providers/auth_providers.dart';
-import '../../providers/shop_providers.dart';
 import '../../providers/sim_type_provider.dart';
 import '../../widgets/buttons/primary_button.dart';
-import '../../widgets/shop/country_list_card.dart';
 
-/// Shop — mirrors H5 `views/ShopView.tsx` 1:1:
-/// white sticky header (greeting + bell + avatar) → SIM/eSIM toggle →
-/// hero card → country list (popular rows highlighted in amber).
-class ShopPage extends HookConsumerWidget {
+/// Shop — post-April-2026 pivot (PCCW physical + Red Tea eSIM, no marketplace).
+///
+/// Mirrors the H5 `ShopView` shell: white sticky header, SIM Card / eSIM
+/// segmented toggle, mode-specific hero card. Instead of the old country
+/// browse, the body now shows a clear "how-to" + a primary CTA that routes
+/// to either the PCCW activation wizard or the Red Tea eSIM connect page.
+class ShopPage extends ConsumerWidget {
   const ShopPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final search = useState('');
-    final searchCtrl = useTextEditingController();
-    final countriesAsync = ref.watch(countriesProvider);
     final user = ref.watch(authControllerProvider).user;
     final simType = ref.watch(simTypeControllerProvider);
-    final strings = AppStrings.of(context);
-
-    Future<void> refresh() async {
-      ref.invalidate(countriesProvider);
-      await ref.read(countriesProvider.future);
-    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          color: AppColors.brandOrange,
-          onRefresh: refresh,
-          child: CustomScrollView(
-            slivers: [
-              _ShopHeader(
-                userName: user?.name,
-                userEmail: user?.email,
-                simType: simType,
-                onSimTypeChanged: (t) =>
-                    ref.read(simTypeControllerProvider.notifier).set(t),
-                onInboxTap: () => context.push(RouteNames.inbox),
-                onAvatarTap: () => context.go(RouteNames.profile),
+        child: CustomScrollView(
+          slivers: [
+            _ShopHeader(
+              userName: user?.name,
+              userEmail: user?.email,
+              simType: simType,
+              onSimTypeChanged: (t) =>
+                  ref.read(simTypeControllerProvider.notifier).set(t),
+              onInboxTap: () => context.push(RouteNames.inbox),
+              onAvatarTap: () => context.go(RouteNames.profile),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.pageHorizontal,
+                AppSpacing.md,
+                AppSpacing.pageHorizontal,
+                AppSpacing.xxl,
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.pageHorizontal,
-                  AppSpacing.md,
-                  AppSpacing.pageHorizontal,
-                  0,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    if (search.value.isEmpty)
-                      _HeroCard(
-                        simType: simType,
-                        onPhysicalSetup: () =>
-                            context.push(RouteNames.physicalSim),
-                      ),
-                    if (search.value.isEmpty) const SizedBox(height: AppSpacing.md),
-
-                    if (simType == SimType.esim) ...[
-                      _SectionSearchBar(
-                        controller: searchCtrl,
-                        hint: strings.shopSearchHint,
-                        onChanged: (v) =>
-                            search.value = v.trim().toLowerCase(),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      _SectionTitle(
-                        title: search.value.isEmpty
-                            ? strings.shopBrowseByCountry
-                            : 'Search results',
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                    ],
-                  ]),
-                ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _HeroCard(
+                    simType: simType,
+                    onPhysical: () => context.push(RouteNames.physicalSim),
+                    onEsim: () => context.push(RouteNames.connectEsim),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  _HowItWorksCard(simType: simType),
+                  const SizedBox(height: AppSpacing.lg),
+                  PrimaryButton(
+                    label: simType == SimType.physical
+                        ? 'Activate PCCW SIM'
+                        : 'Connect eSIM',
+                    icon: simType == SimType.physical
+                        ? Icons.credit_card
+                        : Icons.link,
+                    onPressed: () => simType == SimType.physical
+                        ? context.push(RouteNames.physicalSim)
+                        : context.push(RouteNames.connectEsim),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  _MySimsLink(onTap: () => context.go(RouteNames.mySims)),
+                  const SizedBox(height: AppSpacing.lg),
+                  _BuyElsewhereNote(simType: simType),
+                ]),
               ),
-
-              if (simType == SimType.esim)
-                _EsimCountrySliver(
-                  async: countriesAsync,
-                  query: search.value,
-                )
-              else
-                const _PhysicalSimSliver(),
-
-              const SliverToBoxAdapter(
-                child: SizedBox(height: AppSpacing.xxl),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -111,8 +83,7 @@ class ShopPage extends HookConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Header: white sticky bar with greeting + bell + avatar + SIM/eSIM toggle.
-// Mirrors the three-row header in the H5 shop.
+// Header — white sticky bar with greeting + bell + avatar + toggle.
 // ─────────────────────────────────────────────────────────────────────
 
 class _ShopHeader extends StatelessWidget {
@@ -165,7 +136,6 @@ class _ShopHeader extends StatelessWidget {
       ),
       titleSpacing: AppSpacing.pageHorizontal,
       automaticallyImplyLeading: false,
-      // Hair-line divider under the whole header so it reads like H5.
       shape: const Border(
         bottom: BorderSide(color: AppColors.borderDefault, width: 1),
       ),
@@ -217,7 +187,7 @@ class _HeaderTitleRow extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               const Text(
-                'Find the perfect plan for your trip',
+                'Activate your SIM and top up in seconds',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textWeak,
@@ -304,8 +274,7 @@ class _HeaderAvatar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// SIM Card / eSIM segmented toggle — animated orange pill slides under
-// the selected side, matching H5 `bg-slate-100 rounded-xl` segmented.
+// SIM Card / eSIM segmented toggle.
 // ─────────────────────────────────────────────────────────────────────
 
 class _SimTypeSegmented extends StatelessWidget {
@@ -391,8 +360,7 @@ class _SegmentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        selected ? AppColors.white : AppColors.textSecondary;
+    final color = selected ? AppColors.white : AppColors.textSecondary;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -421,170 +389,415 @@ class _SegmentButton extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Hero card: orange→red for eSIM, dark slate for physical SIM.
+// Hero card — mode-specific, tappable.
 // ─────────────────────────────────────────────────────────────────────
 
 class _HeroCard extends StatelessWidget {
   const _HeroCard({
     required this.simType,
-    required this.onPhysicalSetup,
+    required this.onPhysical,
+    required this.onEsim,
   });
   final SimType simType;
-  final VoidCallback onPhysicalSetup;
+  final VoidCallback onPhysical;
+  final VoidCallback onEsim;
 
   @override
   Widget build(BuildContext context) {
-    if (simType == SimType.esim) return const _EsimHero();
-    return _PhysicalHero(onSetup: onPhysicalSetup);
+    return simType == SimType.physical
+        ? _PhysicalHero(onTap: onPhysical)
+        : _EsimHero(onTap: onEsim);
+  }
+}
+
+class _PhysicalHero extends StatelessWidget {
+  const _PhysicalHero({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.r16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.r16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.r16),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.slate850, Color(0xFF334155)],
+            ),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppRadius.r12),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.brandOrange,
+                          AppColors.brandOrangeLight
+                        ],
+                      ),
+                    ),
+                    child: const Icon(Icons.credit_card,
+                        color: AppColors.white, size: 22),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Activate your PCCW SIM',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Scan the barcode or enter the ICCID printed on your card',
+                          style: TextStyle(
+                            color: Color(0xCCFFFFFF),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const Row(
+                children: [
+                  _Pill(label: 'PCCW Hong Kong'),
+                  SizedBox(width: 6),
+                  _Pill(label: 'Global roaming'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
 class _EsimHero extends StatelessWidget {
-  const _EsimHero();
+  const _EsimHero({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.r16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.r16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.r16),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.brandOrange, AppColors.brandRed],
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26CC0000),
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppRadius.r12),
+                      color: const Color(0x33FFFFFF),
+                    ),
+                    child: const Icon(Icons.link_rounded,
+                        color: AppColors.white, size: 22),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Connect your eSIM',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Paste the ICCID + LPA code from your activation email',
+                          style: TextStyle(
+                            color: Color(0xCCFFFFFF),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const Row(
+                children: [
+                  _Pill(label: 'Red Tea'),
+                  SizedBox(width: 6),
+                  _Pill(label: 'Instant install'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.label});
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.r16),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.brandOrange, AppColors.brandRed],
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x26CC0000),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
+        color: const Color(0x26FFFFFF),
+        borderRadius: BorderRadius.circular(AppRadius.r8),
       ),
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.lg,
-        AppSpacing.lg,
-        AppSpacing.lg,
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// How it works — 3-step instructions, mode-specific.
+// ─────────────────────────────────────────────────────────────────────
+
+class _HowItWorksCard extends StatelessWidget {
+  const _HowItWorksCard({required this.simType});
+  final SimType simType;
+
+  List<_Step> get _steps => simType == SimType.physical
+      ? const [
+          _Step(
+            icon: Icons.shopping_bag_outlined,
+            title: 'Buy a PCCW SIM',
+            body:
+                'Get yours from Amazon, Temu, or evairdigital.com — we don\'t sell hardware in the app.',
+          ),
+          _Step(
+            icon: Icons.qr_code_scanner,
+            title: 'Scan or enter the ICCID',
+            body:
+                'The 18–22 digit number is printed next to the barcode on the card.',
+          ),
+          _Step(
+            icon: Icons.flash_on_outlined,
+            title: 'Top up from My SIMs',
+            body:
+                'Pick a 30 / 60 / 90 / 180-day plan managed by the admin portal.',
+          ),
+        ]
+      : const [
+          _Step(
+            icon: Icons.email_outlined,
+            title: 'Get your activation email',
+            body:
+                'After we issue your Red Tea eSIM, you\'ll receive an email with the ICCID and LPA code.',
+          ),
+          _Step(
+            icon: Icons.content_paste_go,
+            title: 'Paste the codes here',
+            body:
+                'Tap "Connect eSIM" and drop in the two values from the email.',
+          ),
+          _Step(
+            icon: Icons.qr_code_2,
+            title: 'Install to your device',
+            body:
+                'From My SIMs, scan the QR with your phone\'s camera to install the profile (one time only).',
+          ),
+        ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: const BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: AppRadius.card,
+        boxShadow: AppShadows.sm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              RichText(
-                text: const TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Evair',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    TextSpan(
-                      text: 'SIM',
-                      style: TextStyle(
-                        color: AppColors.brandYellow,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Text(
-                'OFFICIAL STORE',
-                style: TextStyle(
-                  color: Color(0x80FFFFFF),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.4,
-                ),
-              ),
-            ],
+          const Text(
+            'How it works',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.2,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
-          const Text(
-            'Purchase',
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              height: 1.1,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const Text(
-            'your eSIM',
-            style: TextStyle(
-              color: AppColors.brandYellow,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              height: 1.1,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const SizedBox(
-            width: 240,
-            child: Text(
-              'Instant activation • 207 countries • delivered by email',
-              style: TextStyle(
-                color: Color(0xCCFFFFFF),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-            ),
-          ),
+          for (int i = 0; i < _steps.length; i++) ...[
+            _Step.render(_steps[i], index: i + 1),
+            if (i != _steps.length - 1)
+              const SizedBox(height: AppSpacing.md),
+          ],
         ],
       ),
     );
   }
 }
 
-class _PhysicalHero extends StatelessWidget {
-  const _PhysicalHero({required this.onSetup});
-  final VoidCallback onSetup;
+class _Step {
+  const _Step({required this.icon, required this.title, required this.body});
+  final IconData icon;
+  final String title;
+  final String body;
+
+  static Widget render(_Step step, {required int index}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.brandOrange.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppRadius.r10),
+          ),
+          child: Icon(step.icon, color: AppColors.brandOrange, size: 18),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    '$index. ',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.brandOrange,
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      step.title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                step.body,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Secondary links
+// ─────────────────────────────────────────────────────────────────────
+
+class _MySimsLink extends StatelessWidget {
+  const _MySimsLink({required this.onTap});
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.r16),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.slate850, Color(0xFF334155)],
-        ),
-      ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Material(
+      color: Colors.transparent,
+      borderRadius: AppRadius.card,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.card,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            borderRadius: AppRadius.card,
+            border: Border.all(color: AppColors.borderDefault),
+          ),
+          child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.r12),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.brandOrange,
-                      AppColors.brandOrangeLight
-                    ],
-                  ),
+                  color: AppColors.brandOrange.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.r10),
                 ),
-                child: const Icon(Icons.credit_card,
-                    color: AppColors.white, size: 22),
+                child: const Icon(Icons.sim_card,
+                    color: AppColors.brandOrange, size: 18),
               ),
               const SizedBox(width: AppSpacing.md),
               const Expanded(
@@ -592,424 +805,66 @@ class _PhysicalHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Bind your SIM',
+                      'Already activated?',
                       style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 18,
+                        fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    SizedBox(height: 2),
                     Text(
-                      'Track delivery & activate your physical SIM card',
+                      'See usage, top up, and manage your SIMs',
                       style: TextStyle(
-                        color: Color(0xCCFFFFFF),
                         fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        height: 1.3,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
+              const Icon(Icons.chevron_right,
+                  size: 20, color: AppColors.textWeak),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          PrimaryButton(
-            label: 'Set Up Now',
-            icon: Icons.arrow_forward,
-            onPressed: onSetup,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Search + section title (reused inside the slivers)
-// ─────────────────────────────────────────────────────────────────────
-
-class _SectionSearchBar extends StatelessWidget {
-  const _SectionSearchBar({
-    required this.controller,
-    required this.hint,
-    required this.onChanged,
-  });
-  final TextEditingController controller;
-  final String hint;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle:
-            const TextStyle(color: AppColors.textWeak, fontSize: 14),
-        filled: true,
-        fillColor: AppColors.cardBackground,
-        prefixIcon: const Icon(Icons.search,
-            size: 18, color: AppColors.textWeak),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.r12),
-          borderSide: const BorderSide(color: AppColors.borderDefault),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.r12),
-          borderSide: const BorderSide(color: AppColors.borderDefault),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.r12),
-          borderSide:
-              const BorderSide(color: AppColors.brandOrange, width: 1.5),
         ),
       ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title});
-  final String title;
+class _BuyElsewhereNote extends StatelessWidget {
+  const _BuyElsewhereNote({required this.simType});
+  final SimType simType;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w800,
-        color: AppColors.textPrimary,
-        letterSpacing: -0.2,
+    final text = simType == SimType.physical
+        ? 'We only sell PCCW SIM cards on Amazon, Temu and evairdigital.com. Bring yours here to activate.'
+        : 'Red Tea eSIMs are issued via email. Didn\'t get one? Contact support from your profile.';
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.fillLight,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// eSIM country list (popular-first, single card with dividers)
-// ─────────────────────────────────────────────────────────────────────
-
-class _EsimCountrySliver extends StatelessWidget {
-  const _EsimCountrySliver({required this.async, required this.query});
-  final AsyncValue<List<Country>> async;
-  final String query;
-
-  @override
-  Widget build(BuildContext context) {
-    return async.when(
-      loading: () => const SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.pageHorizontal,
-          AppSpacing.sm,
-          AppSpacing.pageHorizontal,
-          0,
-        ),
-        sliver: SliverToBoxAdapter(child: _ListSkeleton()),
-      ),
-      error: (e, _) => SliverPadding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.pageHorizontal,
-          AppSpacing.sm,
-          AppSpacing.pageHorizontal,
-          0,
-        ),
-        sliver: SliverToBoxAdapter(
-          child: _InlineError(message: e.toString()),
-        ),
-      ),
-      data: (countries) {
-        final q = query;
-        final filtered = q.isEmpty
-            ? countries
-            : countries
-                .where((c) =>
-                    c.name.toLowerCase().contains(q) ||
-                    c.code.toLowerCase().contains(q))
-                .toList();
-
-        // Popular-first ordering (only when not searching).
-        final sorted = q.isEmpty
-            ? (_popularFirst(filtered))
-            : filtered;
-
-        if (sorted.isEmpty) {
-          return const SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.pageHorizontal,
-              AppSpacing.sm,
-              AppSpacing.pageHorizontal,
-              0,
-            ),
-            sliver: SliverToBoxAdapter(
-              child: _EmptyState(label: 'No countries match your search'),
-            ),
-          );
-        }
-
-        return SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.pageHorizontal,
-            0,
-            AppSpacing.pageHorizontal,
-            0,
-          ),
-          sliver: SliverToBoxAdapter(
-            child: CountryListCard(
-              countries: sorted,
-              showSeparatorAfterPopular: q.isEmpty,
-              onTap: (country) => context.push(
-                '${RouteNames.countryPackages}/${country.code}',
-                extra: country,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  static List<Country> _popularFirst(List<Country> src) {
-    final popular = <Country>[];
-    final rest = <Country>[];
-    for (final c in src) {
-      if (isPopularCountry(c.code)) {
-        popular.add(c);
-      } else {
-        rest.add(c);
-      }
-    }
-    return [...popular, ...rest];
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Physical SIM body — US-only for now, mirrors H5 country-header + grid.
-// (The plan grid itself can come later; for now we route to the activation
-// wizard since real SIM card product catalog isn't wired yet.)
-// ─────────────────────────────────────────────────────────────────────
-
-class _PhysicalSimSliver extends StatelessWidget {
-  const _PhysicalSimSliver();
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.pageHorizontal,
-        AppSpacing.lg,
-        AppSpacing.pageHorizontal,
-        0,
-      ),
-      sliver: SliverList(
-        delegate: SliverChildListDelegate([
-          const _SectionTitle(title: 'Purchase SIM Cards'),
-          const SizedBox(height: AppSpacing.sm),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              borderRadius: BorderRadius.circular(AppRadius.r12),
-              border: Border.all(color: AppColors.borderDefault),
-              boxShadow: AppShadows.subtle,
-            ),
-            child: const Row(
-              children: [
-                _FlagPill(code: 'US'),
-                SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'United States',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                          _OrangeBadge(text: '3 Plans'),
-                        ],
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'AT&T · Verizon · T-Mobile · 3G/4G/5G',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textWeak,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline,
+              size: 18, color: AppColors.textSecondary),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
             child: Text(
-              'Physical SIM catalogue wires up in the next backend pass. Tap '
-              '"Set Up Now" on the hero above to bind a SIM you already have.',
-              style: TextStyle(
+              text,
+              style: const TextStyle(
                 fontSize: 12,
-                color: AppColors.textWeak,
-                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
                 height: 1.4,
               ),
             ),
           ),
-        ]),
-      ),
-    );
-  }
-}
-
-class _FlagPill extends StatelessWidget {
-  const _FlagPill({required this.code});
-  final String code;
-
-  @override
-  Widget build(BuildContext context) {
-    final emoji = _toFlagEmoji(code);
-    return Container(
-      width: 36,
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.fillLight,
-        borderRadius: BorderRadius.circular(AppRadius.r8),
-      ),
-      child: Text(emoji, style: const TextStyle(fontSize: 22)),
-    );
-  }
-
-  static String _toFlagEmoji(String code) {
-    if (code.length != 2) return '🏳️';
-    const base = 0x1F1E6;
-    final upper = code.toUpperCase();
-    final a = upper.codeUnitAt(0);
-    final b = upper.codeUnitAt(1);
-    if (a < 0x41 || a > 0x5A || b < 0x41 || b > 0x5A) return '🏳️';
-    return String.fromCharCodes([base + (a - 0x41), base + (b - 0x41)]);
-  }
-}
-
-class _OrangeBadge extends StatelessWidget {
-  const _OrangeBadge({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF1E5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFD7B8)),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: AppColors.brandOrange,
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Skeletons + error + empty helpers
-// ─────────────────────────────────────────────────────────────────────
-
-class _ListSkeleton extends StatelessWidget {
-  const _ListSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: List.generate(
-        6,
-        (_) => Container(
-          height: 56,
-          margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-          decoration: BoxDecoration(
-            color: AppColors.fillLight,
-            borderRadius: BorderRadius.circular(AppRadius.r12),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message});
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.errorBg,
-        borderRadius: BorderRadius.circular(AppRadius.r10),
-        border: Border.all(color: AppColors.errorBorder),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline,
-              color: AppColors.error, size: 18),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                color: AppColors.error,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 }
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      child: Center(
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    );
-  }
-}
-

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../domain/entities/country.dart';
 import '../../domain/entities/order.dart';
 import '../../domain/entities/package.dart';
 import '../../domain/entities/payment_session.dart';
@@ -18,8 +17,8 @@ import '../../presentation/pages/profile/inbox_page.dart';
 import '../../presentation/pages/profile/orders_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
 import '../../presentation/pages/shell/root_shell.dart';
-import '../../presentation/pages/shop/country_packages_page.dart';
 import '../../presentation/pages/shop/shop_page.dart';
+import '../../presentation/pages/sims/connect_esim_page.dart';
 import '../../presentation/pages/sims/my_sims_page.dart';
 import '../../presentation/pages/sims/physical_sim_page.dart';
 import '../../presentation/pages/sims/sim_detail_page.dart';
@@ -116,17 +115,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: RouteNames.shop,
                 builder: (context, state) => const ShopPage(),
-                routes: [
-                  GoRoute(
-                    path: 'country/:code',
-                    builder: (context, state) => CountryPackagesPage(
-                      countryCode: state.pathParameters['code'] ?? '',
-                      country: state.extra is Country
-                          ? state.extra as Country
-                          : null,
-                    ),
-                  ),
-                ],
+                // NOTE: the `country/:code` child route (CountryPackagesPage)
+                // was removed in the April 2026 pivot — we no longer sell
+                // eSIMs by country from inside the app.
               ),
             ],
           ),
@@ -171,6 +162,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteNames.physicalSim,
         builder: (context, state) => const PhysicalSimPage(),
+      ),
+      GoRoute(
+        path: RouteNames.connectEsim,
+        builder: (context, state) => const ConnectEsimPage(),
       ),
       GoRoute(
         path: RouteNames.inbox,
