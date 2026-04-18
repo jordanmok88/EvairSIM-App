@@ -139,7 +139,9 @@ class _TopBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isGuest ? 'Hello, new friend' : 'Hello, $displayName',
+                  isGuest
+                      ? 'Hello, New Friend'
+                      : 'Hello, $displayName',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -151,7 +153,7 @@ class _TopBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 const Text(
-                  'Activate your SIM and top up in seconds',
+                  'Find the perfect plan for your trip',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textWeak,
@@ -169,7 +171,10 @@ class _TopBar extends StatelessWidget {
             onTap: onInboxTap,
           ),
           const SizedBox(width: 8),
-          _AvatarBubble(initial: initial, onTap: onAvatarTap),
+          _AvatarBubble(
+            initial: isGuest ? null : initial,
+            onTap: onAvatarTap,
+          ),
         ],
       ),
     );
@@ -201,7 +206,9 @@ class _HeaderIconButton extends StatelessWidget {
 
 class _AvatarBubble extends StatelessWidget {
   const _AvatarBubble({required this.initial, required this.onTap});
-  final String initial;
+
+  /// null when user is logged out → shows a generic person icon like the H5.
+  final String? initial;
   final VoidCallback onTap;
 
   @override
@@ -224,14 +231,16 @@ class _AvatarBubble extends StatelessWidget {
               colors: [AppColors.brandOrange, AppColors.brandOrangeLight],
             ),
           ),
-          child: Text(
-            initial,
-            style: const TextStyle(
-              color: AppColors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 14,
-            ),
-          ),
+          child: initial == null
+              ? const Icon(Icons.person, color: AppColors.white, size: 20)
+              : Text(
+                  initial!,
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
         ),
       ),
     );

@@ -418,98 +418,147 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
+/// SIM Card (physical) hero — 1:1 port of the H5 dark navy "Bind your SIM
+/// Card" card.  Layout:
+///   • Row: orange rounded-xl icon + bold white heading + slate subtitle
+///   • Chip row: 🚚 Delivery Tracking  ·  📱 SIM Activation
+///   • Full-width orange gradient "Set Up Now >" button
 class _PhysicalHero extends StatelessWidget {
   const _PhysicalHero({required this.onTap});
   final VoidCallback onTap;
 
+  static const _slate900 = Color(0xFF1E293B);
+  static const _slate700 = Color(0xFF334155);
+  static const _slate400 = Color(0xFF94A3B8);
+  static const _slate300 = Color(0xFFCBD5E1);
+
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadius.r16),
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.r16),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.r16),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.slate850, Color(0xFF334155)],
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_slate900, _slate700],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -40,
+            right: -40,
+            child: Container(
+              width: 128,
+              height: 128,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [Color(0x33FF6600), Colors.transparent],
+                  stops: [0, 0.7],
+                ),
+              ),
             ),
           ),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppRadius.r12),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.brandOrange,
-                          AppColors.brandOrangeLight
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadius.r12),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppColors.brandOrange,
+                            AppColors.brandOrangeLight,
+                          ],
+                        ),
+                      ),
+                      child: const Icon(Icons.credit_card,
+                          color: AppColors.white, size: 22),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Bind your SIM Card',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Track delivery & activate your physical SIM card',
+                            style: TextStyle(
+                              color: _slate400,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.35,
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    child: const Icon(Icons.credit_card,
-                        color: AppColors.white, size: 22),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Activate your PCCW SIM',
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Scan the barcode or enter the ICCID printed on your card',
-                          style: TextStyle(
-                            color: Color(0xCCFFFFFF),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: const [
+                    _HeroChip(
+                      icon: Icons.local_shipping_outlined,
+                      label: 'Delivery Tracking',
+                      textColor: _slate300,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const Row(
-                children: [
-                  _Pill(label: 'PCCW Hong Kong'),
-                  SizedBox(width: 6),
-                  _Pill(label: 'Global roaming'),
-                ],
-              ),
-            ],
+                    SizedBox(width: AppSpacing.md),
+                    _HeroChip(
+                      icon: Icons.smartphone,
+                      label: 'SIM Activation',
+                      textColor: _slate300,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _HeroCta(label: 'Set Up Now', onTap: onTap),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
+/// eSIM hero — 1:1 port of the H5 red-orange "EvairSIM OFFICIAL STORE"
+/// card. We keep the visual and swap the headline to reflect the
+/// April-2026 pivot (we connect eSIMs rather than sell them inside the app).
 class _EsimHero extends StatelessWidget {
   const _EsimHero({required this.onTap});
   final VoidCallback onTap;
+
+  static const _gold = Color(0xFFFFCC33);
+  static const _deepRed = Color(0xFFCC0000);
 
   @override
   Widget build(BuildContext context) {
@@ -520,12 +569,13 @@ class _EsimHero extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.r16),
         child: Container(
+          clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.r16),
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppColors.brandOrange, AppColors.brandRed],
+              colors: [AppColors.brandOrange, _deepRed],
             ),
             boxShadow: const [
               BoxShadow(
@@ -535,58 +585,95 @@ class _EsimHero extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppRadius.r12),
-                      color: const Color(0x33FFFFFF),
+              Positioned(
+                top: -64,
+                right: -64,
+                child: Container(
+                  width: 192,
+                  height: 192,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0x33FFCC33), Colors.transparent],
+                      stops: [0, 0.7],
                     ),
-                    child: const Icon(Icons.link_rounded,
-                        color: AppColors.white, size: 22),
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                ),
+              ),
+              Positioned(
+                bottom: -48,
+                left: -48,
+                child: Container(
+                  width: 144,
+                  height: 144,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0x26FF6600), Colors.transparent],
+                      stops: [0, 0.7],
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: const [
+                        _EvairLockup(),
                         Text(
-                          'Connect your eSIM',
+                          'OFFICIAL STORE',
                           style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Paste the ICCID + LPA code from your activation email',
-                          style: TextStyle(
-                            color: Color(0xCCFFFFFF),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            height: 1.3,
+                            color: Color(0x80FFFFFF),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.8,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const Row(
-                children: [
-                  _Pill(label: 'Red Tea'),
-                  SizedBox(width: 6),
-                  _Pill(label: 'Instant install'),
-                ],
+                    const SizedBox(height: AppSpacing.md),
+                    const Text(
+                      'Connect',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.6,
+                        height: 1.05,
+                      ),
+                    ),
+                    const Text(
+                      'Your eSIM',
+                      style: TextStyle(
+                        color: _gold,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.6,
+                        height: 1.05,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm + 2),
+                    const SizedBox(
+                      width: 250,
+                      child: Text(
+                        'Paste your activation code or scan the QR — your Red Tea eSIM is ready in seconds.',
+                        style: TextStyle(
+                          color: Color(0xB3FFFFFF),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -596,25 +683,108 @@ class _EsimHero extends StatelessWidget {
   }
 }
 
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label});
+class _EvairLockup extends StatelessWidget {
+  const _EvairLockup();
+  @override
+  Widget build(BuildContext context) {
+    return const Text.rich(
+      TextSpan(
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.3,
+        ),
+        children: [
+          TextSpan(text: 'Evair', style: TextStyle(color: AppColors.white)),
+          TextSpan(
+            text: 'SIM',
+            style: TextStyle(color: _EsimHero._gold),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroChip extends StatelessWidget {
+  const _HeroChip({
+    required this.icon,
+    required this.label,
+    required this.textColor,
+  });
+  final IconData icon;
   final String label;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF),
-        borderRadius: BorderRadius.circular(AppRadius.r8),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppColors.brandOrange),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroCta extends StatelessWidget {
+  const _HeroCta({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.r12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
+        child: Container(
+          height: 48,
+          width: double.infinity,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.r12),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.brandOrange, AppColors.brandOrangeLight],
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x4DFF6600),
+                blurRadius: 14,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right,
+                  color: AppColors.white, size: 18),
+            ],
+          ),
         ),
       ),
     );
