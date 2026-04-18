@@ -14,48 +14,32 @@ import '../sims/my_sims_page.dart';
 
 /// Primary screen post-April-2026 pivot.
 ///
-/// Mirrors the H5 layout EXACTLY:
+/// Mirrors the H5 `ProductTab` layout EXACTLY:
 ///   • No bottom nav.
 ///   • Sticky top bar with greeting + bell (inbox) + avatar (profile).
 ///   • Large SIM Card / eSIM segmented toggle (app-wide product switch).
-///   • Shop / My SIMs sub-pill controlling the body.
-///   • Body is an IndexedStack over the embedded Shop and My SIMs bodies so
-///     scroll state and providers stay warm while switching.
-class HomeShell extends ConsumerStatefulWidget {
+///   • Body is auto-selected (no visible sub-toggle) based on whether the
+///     user has active SIMs of the currently-selected type:
+///       ─ 0 SIMs → ShopPage  (bind / connect CTA)
+///       ─ ≥1 SIM → MySimsPage (usage + SIM list + "+ Add" button)
+///     Cross-navigation is handled by in-page affordances (MySims has an
+///     "+ Add" button that routes to the wizard, ShopPage has a "View my
+///     SIMs" chip when the user already has some).
+class HomeShell extends ConsumerWidget {
   const HomeShell({super.key});
 
   @override
-  ConsumerState<HomeShell> createState() => _HomeShellState();
-}
-
-enum _ViewMode { shop, mySims }
-
-class _HomeShellState extends ConsumerState<HomeShell> {
-  _ViewMode _mode = _ViewMode.shop;
-
-  @override
-  void initState() {
-    super.initState();
-    // Land on My SIMs when the user already has bound SIMs — matches the
-    // H5 `ProductTab` behaviour (viewMode defaults to 'MINE' if mySims > 0).
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      final sims = await ref.read(userSimsProvider.future);
-      if (!mounted) return;
-      if (sims.isNotEmpty && _mode == _ViewMode.shop) {
-        setState(() => _mode = _ViewMode.mySims);
-      }
-    });
-  }
-
-  void _setMode(_ViewMode m) {
-    if (_mode != m) setState(() => _mode = m);
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).user;
     final simType = ref.watch(simTypeControllerProvider);
+    final simsAsync = ref.watch(userSimsProvider);
+
+    final hasSimsOfType = simsAsync.maybeWhen(
+      data: (sims) => sims.any((s) =>
+          (simType == SimType.esim && s.isEsim) ||
+          (simType == SimType.physical && !s.isEsim)),
+      orElse: () => false,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -74,14 +58,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               onChanged: (t) =>
                   ref.read(simTypeControllerProvider.notifier).set(t),
             ),
-            _ViewModeTabs(
-              value: _mode,
-              onChanged: _setMode,
-            ),
+            const SizedBox(height: AppSpacing.sm),
             const _Divider(),
             Expanded(
               child: IndexedStack(
-                index: _mode == _ViewMode.shop ? 0 : 1,
+                index: hasSimsOfType ? 1 : 0,
                 children: const [
                   ShopPage(embedded: true),
                   MySimsPage(embedded: true),
@@ -365,93 +346,6 @@ class _SegBtn extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Secondary: Shop / My SIMs pill
-// ─────────────────────────────────────────────────────────────
-
-class _ViewModeTabs extends StatelessWidget {
-  const _ViewModeTabs({required this.value, required this.onChanged});
-  final _ViewMode value;
-  final ValueChanged<_ViewMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.cardBackground,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.pageHorizontal,
-        0,
-        AppSpacing.pageHorizontal,
-        AppSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _ViewModeBtn(
-              label: 'Shop',
-              selected: value == _ViewMode.shop,
-              onTap: () => onChanged(_ViewMode.shop),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _ViewModeBtn(
-              label: 'My SIMs',
-              selected: value == _ViewMode.mySims,
-              onTap: () => onChanged(_ViewMode.mySims),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ViewModeBtn extends StatelessWidget {
-  const _ViewModeBtn({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppColors.textPrimary : AppColors.cardBackground,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          alignment: Alignment.center,
-          height: 36,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected
-                  ? AppColors.textPrimary
-                  : AppColors.borderDefault,
-              width: 1,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: selected ? AppColors.white : AppColors.textPrimary,
-              letterSpacing: -0.2,
-            ),
-          ),
-        ),
       ),
     );
   }

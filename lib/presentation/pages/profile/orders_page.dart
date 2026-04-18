@@ -69,8 +69,8 @@ class _RechargeTile extends StatelessWidget {
 
     final (statusLabel, statusColor) = _statusVisuals(order);
     final supplier = switch ((order.supplierType ?? '').toLowerCase()) {
-      'esimaccess' => 'Red Tea eSIM',
-      'pccw' => 'PCCW SIM',
+      'esimaccess' => 'eSIM',
+      'pccw' => 'SIM Card',
       _ => 'SIM',
     };
 

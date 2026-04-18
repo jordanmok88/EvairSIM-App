@@ -258,7 +258,7 @@ class _IntroCard extends StatelessWidget {
               Icon(Icons.link_rounded, color: AppColors.white, size: 20),
               SizedBox(width: 8),
               Text(
-                'Connect a Red Tea eSIM',
+                'Connect your eSIM',
                 style: TextStyle(
                   color: AppColors.white,
                   fontSize: 16,

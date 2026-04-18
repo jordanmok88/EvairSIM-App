@@ -48,7 +48,7 @@ class ShopPage extends ConsumerWidget {
         const SizedBox(height: AppSpacing.lg),
         PrimaryButton(
           label: simType == SimType.physical
-              ? 'Activate PCCW SIM'
+              ? 'Activate SIM Card'
               : 'Connect eSIM',
           icon: simType == SimType.physical
               ? Icons.credit_card
@@ -663,7 +663,7 @@ class _EsimHero extends StatelessWidget {
                     const SizedBox(
                       width: 250,
                       child: Text(
-                        'Paste your activation code or scan the QR — your Red Tea eSIM is ready in seconds.',
+                        'Paste your activation code or scan the QR — your eSIM is ready in seconds.',
                         style: TextStyle(
                           color: Color(0xB3FFFFFF),
                           fontSize: 13,
@@ -803,9 +803,9 @@ class _HowItWorksCard extends StatelessWidget {
       ? const [
           _Step(
             icon: Icons.shopping_bag_outlined,
-            title: 'Buy a PCCW SIM',
+            title: 'Get an EvairSIM card',
             body:
-                'Get yours from Amazon, Temu, or evairdigital.com — we don\'t sell hardware in the app.',
+                'Order one on Amazon, Temu, or evairdigital.com — we ship worldwide.',
           ),
           _Step(
             icon: Icons.qr_code_scanner,
@@ -825,7 +825,7 @@ class _HowItWorksCard extends StatelessWidget {
             icon: Icons.email_outlined,
             title: 'Get your activation email',
             body:
-                'After we issue your Red Tea eSIM, you\'ll receive an email with the ICCID and LPA code.',
+                'After we issue your EvairSIM eSIM, you\'ll receive an email with the ICCID and LPA code.',
           ),
           _Step(
             icon: Icons.content_paste_go,
@@ -949,8 +949,8 @@ class _BuyElsewhereNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = simType == SimType.physical
-        ? 'We only sell PCCW SIM cards on Amazon, Temu and evairdigital.com. Bring yours here to activate.'
-        : 'Red Tea eSIMs are issued via email. Didn\'t get one? Contact support from your profile.';
+        ? 'EvairSIM cards are sold on Amazon, Temu and evairdigital.com. Bring yours here to activate.'
+        : 'eSIMs are issued via email. Didn\'t get one? Contact support from your profile.';
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(

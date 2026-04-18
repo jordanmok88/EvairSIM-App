@@ -213,8 +213,8 @@ class _SimSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = supplierType == 'esimaccess'
-        ? 'Red Tea eSIM'
-        : 'PCCW physical SIM';
+        ? 'EvairSIM eSIM'
+        : 'EvairSIM card';
     return Container(
       margin: const EdgeInsets.fromLTRB(
         AppSpacing.pageHorizontal,
@@ -388,8 +388,8 @@ class _EmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final which = supplierType == 'esimaccess'
-        ? 'Red Tea eSIM'
-        : 'PCCW physical SIM';
+        ? 'EvairSIM eSIM'
+        : 'EvairSIM card';
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),

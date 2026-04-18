@@ -637,8 +637,8 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               isEsim
-                  ? 'Connect a Red Tea eSIM by pasting its LPA / QR code.'
-                  : 'Activate a PCCW SIM by scanning the barcode on the card.',
+                  ? 'Connect an eSIM by pasting its LPA / QR code.'
+                  : 'Activate your EvairSIM card by scanning the barcode or entering the ICCID.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -698,8 +698,8 @@ class _EmptyForType extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               isEsim
-                  ? 'Tap "Connect" to add a Red Tea eSIM.'
-                  : 'Tap "Activate" to bind a PCCW SIM card.',
+                  ? 'Tap "Connect" to add an eSIM.'
+                  : 'Tap "Activate" to bind your EvairSIM card.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,

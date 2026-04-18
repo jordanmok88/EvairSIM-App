@@ -37,7 +37,7 @@ class _PhysicalSimPageState extends ConsumerState<PhysicalSimPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Activate PCCW SIM'),
+        title: const Text('Activate SIM Card'),
         backgroundColor: AppColors.background,
         elevation: 0,
       ),
@@ -56,7 +56,7 @@ class _PhysicalSimPageState extends ConsumerState<PhysicalSimPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    '1. Find your PCCW SIM ICCID',
+                    '1. Find your ICCID',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -115,8 +115,8 @@ class _PhysicalSimPageState extends ConsumerState<PhysicalSimPage> {
                   SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'Tip: enter the ICCID printed on the back of your PCCW '
-                      'SIM card. Barcode scanning coming soon.',
+                      'Tip: enter the ICCID printed on the back of your '
+                      'EvairSIM card. Barcode scanning coming soon.',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,

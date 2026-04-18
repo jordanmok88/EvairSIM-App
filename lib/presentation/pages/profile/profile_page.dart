@@ -89,10 +89,8 @@ class ProfilePage extends ConsumerWidget {
               _MenuItem(
                 icon: Icons.ios_share_outlined,
                 label: 'Share EvairSIM',
-                onTap: () => SharePlus.instance.share(
-                  ShareParams(
-                    text: 'Stay connected worldwide with EvairSIM: $_shareUrl',
-                  ),
+                onTap: () => Share.share(
+                  'Stay connected worldwide with EvairSIM: $_shareUrl',
                 ),
               ),
             ]),
@@ -547,13 +545,12 @@ void _showAbout(BuildContext context) {
     useRootNavigator: true,
     applicationName: 'EvairSIM',
     applicationVersion: ProfilePage._appVersion,
-    applicationLegalese:
-        '© 2026 Evair Digital. PCCW physical SIM activation + Red Tea eSIM connect.',
+    applicationLegalese: '© 2026 Evair Digital.',
     children: const [
       SizedBox(height: 12),
       Text(
-        'EvairSIM lets you activate PCCW physical SIMs and connect Red Tea '
-        'eSIMs, then top them up with admin-portal-managed recharge packages.',
+        'EvairSIM lets you activate your SIM card and connect eSIMs, '
+        'then top them up with flexible recharge packages — anywhere in the world.',
         style: TextStyle(fontSize: 13, height: 1.4),
       ),
     ],
