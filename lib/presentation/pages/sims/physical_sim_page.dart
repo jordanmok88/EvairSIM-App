@@ -115,8 +115,8 @@ class _PhysicalSimPageState extends ConsumerState<PhysicalSimPage> {
                   SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'Camera scanning launches with native iOS/Android in Milestone 7. '
-                      'Manual entry works on all platforms.',
+                      'Tip: enter the ICCID printed on the back of your PCCW '
+                      'SIM card. Barcode scanning coming soon.',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
