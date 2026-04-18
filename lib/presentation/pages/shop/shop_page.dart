@@ -18,12 +18,51 @@ import '../../widgets/buttons/primary_button.dart';
 /// browse, the body now shows a clear "how-to" + a primary CTA that routes
 /// to either the PCCW activation wizard or the Red Tea eSIM connect page.
 class ShopPage extends ConsumerWidget {
-  const ShopPage({super.key});
+  const ShopPage({super.key, this.embedded = false});
+
+  /// When true, renders only the body content (no Scaffold, SafeArea, or
+  /// sticky header) so it can be composed inside [HomeShell]. Standalone
+  /// usage still works for deep links.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).user;
     final simType = ref.watch(simTypeControllerProvider);
+
+    final body = ListView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.md,
+        AppSpacing.pageHorizontal,
+        AppSpacing.xxl,
+      ),
+      children: [
+        _HeroCard(
+          simType: simType,
+          onPhysical: () => context.push(RouteNames.physicalSim),
+          onEsim: () => context.push(RouteNames.connectEsim),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        _HowItWorksCard(simType: simType),
+        const SizedBox(height: AppSpacing.lg),
+        PrimaryButton(
+          label: simType == SimType.physical
+              ? 'Activate PCCW SIM'
+              : 'Connect eSIM',
+          icon: simType == SimType.physical
+              ? Icons.credit_card
+              : Icons.link,
+          onPressed: () => simType == SimType.physical
+              ? context.push(RouteNames.physicalSim)
+              : context.push(RouteNames.connectEsim),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        _BuyElsewhereNote(simType: simType),
+      ],
+    );
+
+    if (embedded) return body;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -38,42 +77,11 @@ class ShopPage extends ConsumerWidget {
               onSimTypeChanged: (t) =>
                   ref.read(simTypeControllerProvider.notifier).set(t),
               onInboxTap: () => context.push(RouteNames.inbox),
-              onAvatarTap: () => context.go(RouteNames.profile),
+              onAvatarTap: () => context.push(RouteNames.profile),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.pageHorizontal,
-                AppSpacing.md,
-                AppSpacing.pageHorizontal,
-                AppSpacing.xxl,
-              ),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _HeroCard(
-                    simType: simType,
-                    onPhysical: () => context.push(RouteNames.physicalSim),
-                    onEsim: () => context.push(RouteNames.connectEsim),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  _HowItWorksCard(simType: simType),
-                  const SizedBox(height: AppSpacing.lg),
-                  PrimaryButton(
-                    label: simType == SimType.physical
-                        ? 'Activate PCCW SIM'
-                        : 'Connect eSIM',
-                    icon: simType == SimType.physical
-                        ? Icons.credit_card
-                        : Icons.link,
-                    onPressed: () => simType == SimType.physical
-                        ? context.push(RouteNames.physicalSim)
-                        : context.push(RouteNames.connectEsim),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  _MySimsLink(onTap: () => context.go(RouteNames.mySims)),
-                  const SizedBox(height: AppSpacing.lg),
-                  _BuyElsewhereNote(simType: simType),
-                ]),
-              ),
+            SliverFillRemaining(
+              hasScrollBody: true,
+              child: body,
             ),
           ],
         ),
@@ -761,77 +769,8 @@ class _Step {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Secondary links
+// Secondary note
 // ─────────────────────────────────────────────────────────────────────
-
-class _MySimsLink extends StatelessWidget {
-  const _MySimsLink({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: AppRadius.card,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.card,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: AppRadius.card,
-            border: Border.all(color: AppColors.borderDefault),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.brandOrange.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.r10),
-                ),
-                child: const Icon(Icons.sim_card,
-                    color: AppColors.brandOrange, size: 18),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Already activated?',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'See usage, top up, and manage your SIMs',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right,
-                  size: 20, color: AppColors.textWeak),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _BuyElsewhereNote extends StatelessWidget {
   const _BuyElsewhereNote({required this.simType});

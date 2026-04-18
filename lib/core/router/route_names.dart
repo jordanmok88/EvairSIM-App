@@ -4,7 +4,12 @@ abstract class RouteNames {
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
 
-  // Main tabs
+  /// Main screen. Post-April-2026 pivot there is NO bottom nav — the app
+  /// lives inside one scaffold that toggles between Shop and My SIMs bodies,
+  /// exactly like the H5 `ProductTab`. Profile and Inbox are pushed overlays.
+  static const String home = '/home';
+
+  // Kept for deep links / legacy pushes.
   static const String shop = '/shop';
   static const String mySims = '/my-sims';
   static const String profile = '/profile';

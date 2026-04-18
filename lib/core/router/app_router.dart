@@ -15,9 +15,9 @@ import '../../presentation/pages/checkout/order_confirmation_page.dart';
 import '../../presentation/pages/profile/contact_us_page.dart';
 import '../../presentation/pages/profile/inbox_page.dart';
 import '../../presentation/pages/profile/live_chat_page.dart';
+import '../../presentation/pages/home/home_shell.dart';
 import '../../presentation/pages/profile/orders_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
-import '../../presentation/pages/shell/root_shell.dart';
 import '../../presentation/pages/shop/shop_page.dart';
 import '../../presentation/pages/sims/connect_esim_page.dart';
 import '../../presentation/pages/sims/my_sims_page.dart';
@@ -29,9 +29,6 @@ import '../../presentation/providers/auth_providers.dart';
 import 'route_names.dart';
 
 final _rootNavKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-final _shopNavKey = GlobalKey<NavigatorState>(debugLabel: 'shop');
-final _simsNavKey = GlobalKey<NavigatorState>(debugLabel: 'sims');
-final _profileNavKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -56,7 +53,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           (loc == RouteNames.welcome ||
               loc == RouteNames.login ||
               loc == RouteNames.register)) {
-        return RouteNames.shop;
+        return RouteNames.home;
       }
       return null;
     },
@@ -105,61 +102,43 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Main tabbed shell
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            RootShell(navigationShell: navigationShell),
-        branches: [
-          StatefulShellBranch(
-            navigatorKey: _shopNavKey,
+      // Main screen — no bottom nav (H5 parity).
+      GoRoute(
+        path: RouteNames.home,
+        builder: (context, state) => const HomeShell(),
+      ),
+      // Deep-link aliases: standalone Shop / My SIMs (still headerless-free
+      // because we run them in standalone mode when not in HomeShell).
+      GoRoute(
+        path: RouteNames.shop,
+        builder: (context, state) => const ShopPage(),
+      ),
+      GoRoute(
+        path: RouteNames.mySims,
+        builder: (context, state) => const MySimsPage(),
+        routes: [
+          GoRoute(
+            path: ':iccid',
+            builder: (context, state) => SimDetailPage(
+              iccid: state.pathParameters['iccid'] ?? '',
+            ),
             routes: [
               GoRoute(
-                path: RouteNames.shop,
-                builder: (context, state) => const ShopPage(),
-                // NOTE: the `country/:code` child route (CountryPackagesPage)
-                // was removed in the April 2026 pivot — we no longer sell
-                // eSIMs by country from inside the app.
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            navigatorKey: _simsNavKey,
-            routes: [
-              GoRoute(
-                path: RouteNames.mySims,
-                builder: (context, state) => const MySimsPage(),
-                routes: [
-                  GoRoute(
-                    path: ':iccid',
-                    builder: (context, state) => SimDetailPage(
-                      iccid: state.pathParameters['iccid'] ?? '',
-                    ),
-                    routes: [
-                      GoRoute(
-                        path: 'topup',
-                        builder: (context, state) => TopUpPage(
-                          iccid: state.pathParameters['iccid'] ?? '',
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            navigatorKey: _profileNavKey,
-            routes: [
-              GoRoute(
-                path: RouteNames.profile,
-                builder: (context, state) => const ProfilePage(),
+                path: 'topup',
+                builder: (context, state) => TopUpPage(
+                  iccid: state.pathParameters['iccid'] ?? '',
+                ),
               ),
             ],
           ),
         ],
       ),
+      GoRoute(
+        path: RouteNames.profile,
+        builder: (context, state) => const ProfilePage(),
+      ),
 
-      // Root-level profile sub-routes so they overlay the shell.
+      // Pushed overlays from the home shell.
       GoRoute(
         path: RouteNames.physicalSim,
         builder: (context, state) => const PhysicalSimPage(),

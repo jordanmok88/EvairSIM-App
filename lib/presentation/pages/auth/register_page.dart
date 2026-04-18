@@ -33,7 +33,7 @@ class RegisterPage extends HookConsumerWidget {
         name: nameCtrl.text.trim().isEmpty ? null : nameCtrl.text.trim(),
       );
       if (!context.mounted) return;
-      if (ok) context.go(RouteNames.shop);
+      if (ok) context.go(RouteNames.home);
     }
 
     return Scaffold(

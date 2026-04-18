@@ -20,12 +20,52 @@ import '../../widgets/sims/usage_donut.dart';
 ///  • Install banner (eSIM-only) for any SIM still in RELEASED/NEW state
 ///  • SIM list using the branded SimCardTile
 class MySimsPage extends ConsumerWidget {
-  const MySimsPage({super.key});
+  const MySimsPage({super.key, this.embedded = false});
+
+  /// When true, renders only the body (no Scaffold, SafeArea, or internal
+  /// header) so it can be composed inside [HomeShell]. Standalone mode
+  /// keeps the legacy header for deep-link usage.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sims = ref.watch(userSimsProvider);
     final simType = ref.watch(simTypeControllerProvider);
+
+    final body = sims.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => _ErrorBlock(message: e.toString()),
+      data: (all) {
+        final filtered = _filter(all, simType);
+        if (all.isEmpty) return _EmptyState(simType: simType);
+        if (filtered.isEmpty) return _EmptyForType(simType: simType);
+        return RefreshIndicator(
+          color: AppColors.brandOrange,
+          onRefresh: () async {
+            ref.invalidate(userSimsProvider);
+            await ref.read(userSimsProvider.future);
+          },
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+            children: [
+              _UsageOverview(sims: filtered),
+              const SizedBox(height: AppSpacing.md),
+              if (simType == SimType.esim) _InstallBanner(sims: filtered),
+              const SizedBox(height: AppSpacing.sm),
+              ...filtered.expand((sim) => [
+                    SimCardTile(
+                      sim: sim,
+                      onTap: () => _openSim(context, sim.iccid),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ]),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (embedded) return body;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -39,44 +79,7 @@ class MySimsPage extends ConsumerWidget {
                   ref.read(simTypeControllerProvider.notifier).set(t),
               onAdd: () => _handleAdd(context, simType),
             ),
-            Expanded(
-              child: sims.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (e, _) => _ErrorBlock(message: e.toString()),
-                data: (all) {
-                  final filtered = _filter(all, simType);
-                  if (all.isEmpty) return _EmptyState(simType: simType);
-                  if (filtered.isEmpty) {
-                    return _EmptyForType(simType: simType);
-                  }
-                  return RefreshIndicator(
-                    color: AppColors.brandOrange,
-                    onRefresh: () async {
-                      ref.invalidate(userSimsProvider);
-                      await ref.read(userSimsProvider.future);
-                    },
-                    child: ListView(
-                      padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-                      children: [
-                        _UsageOverview(sims: filtered),
-                        const SizedBox(height: AppSpacing.md),
-                        if (simType == SimType.esim)
-                          _InstallBanner(sims: filtered),
-                        const SizedBox(height: AppSpacing.sm),
-                        ...filtered.expand((sim) => [
-                              SimCardTile(
-                                sim: sim,
-                                onTap: () => _openSim(context, sim.iccid),
-                              ),
-                              const SizedBox(height: AppSpacing.md),
-                            ]),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
+            Expanded(child: body),
           ],
         ),
       ),

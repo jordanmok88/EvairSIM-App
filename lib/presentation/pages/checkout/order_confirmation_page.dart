@@ -92,20 +92,9 @@ class OrderConfirmationPage extends StatelessWidget {
               _OrderDetails(order: order, package: package, session: session),
               const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
-                label: 'Go to My SIMs',
-                icon: Icons.sim_card,
-                onPressed: () => context.go(RouteNames.mySims),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextButton(
-                onPressed: () => context.go(RouteNames.shop),
-                child: const Text(
-                  'Keep shopping',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                label: 'Back to app',
+                icon: Icons.home_outlined,
+                onPressed: () => context.go(RouteNames.home),
               ),
               const SizedBox(height: AppSpacing.md),
             ],

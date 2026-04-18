@@ -30,7 +30,7 @@ class LoginPage extends HookConsumerWidget {
       );
       if (!context.mounted) return;
       if (ok) {
-        context.go(RouteNames.shop);
+        context.go(RouteNames.home);
       }
     }
 
