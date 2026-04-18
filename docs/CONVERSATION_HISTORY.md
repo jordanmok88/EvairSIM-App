@@ -231,11 +231,55 @@ Same kind of drift exists on My SIMs, Profile, and the checkout/QR flow — do a
 - Jordan reviewed the Shop page screenshot and correctly pointed out the UI is structurally different from H5 → redesign planned for session 2.
 - Session ended with a "good night."
 
-### Session 2 (planned — April 19, 2026)
+### Session 2 (April 19, 2026)
 
-- **First priority**: H5-fidelity redesign of Shop page. Show Jordan running on Chrome. Iterate.
-- Then: My SIMs, Profile, Checkout/QR, Physical SIM — same H5 1:1 pass.
-- After UI parity: swap placeholder icon, TestFlight build.
+**Part A — Shop redesign (done):**
+- Rewrote `shop_page.dart` to match H5 structurally: white sticky SliverAppBar with greeting + bell + avatar, animated SIM Card / eSIM segmented toggle, mode-specific hero cards, unified country-list card with amber highlight for popular countries.
+- New files: `core/constants/popular_countries.dart`, `presentation/providers/sim_type_provider.dart`, `presentation/widgets/shop/country_list_card.dart`.
+- New theme tokens: `AppColors.starAmber`, `AppColors.popularRowBg`.
+- Commit `21976eb`, pushed to GitHub `main`.
+
+**Part B — Portal integration (done):**
+Jordan flagged: "make sure the APP can connect to the features of our portal." Surveyed admin portal (`/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/admin`) and mapped features to Laravel endpoints. Identified the two biggest gaps: Inbox (notifications) and Contact Us (live chat) were static placeholders. Built the plumbing for both:
+- `AppNotification` entity (locale-aware title/body getters)
+- `Conversation` + `ChatMessage` entities (freezed)
+- `NotificationApi`, `ChatApi` → Dio wrappers on `/v1/h5/notifications` and `/v1/h5/conversations/*`
+- Repositories with `Either<Failure, T>` + `ResponseEnvelope` handling
+- `notificationsProvider` (FutureProvider.autoDispose)
+- `ChatController` / `ChatState`: creates conversation, optimistic send, 5s polling with `since=` delta.
+- Commit follow-up. `flutter analyze` clean.
+
+**Part C — Strategic pivot (IMPORTANT):**
+Jordan clarified the app's product scope before we continued redesigning:
+
+> "the major feature of the APP will be bind and top up the sim card from PCCW,
+>  and then to be able to connect, top up red tea eSIM. No more eCard at the moment"
+
+What this means operationally:
+1. **PCCW physical SIM** is the PRIMARY surface — bind by ICCID / barcode, then top-up.
+2. **Red Tea eSIM** is the SECONDARY surface — customer "connects" an eSIM they've already obtained (LPA code issued via email / admin portal), then tops it up.
+3. **No more eCard / eSIM marketplace** — the "Shop by country, buy a new eSIM" flow is OFF-SCOPE for now. The `ShopPage` I just redesigned with country browse needs to be reshaped.
+4. **No shipping flow** — customers buy physical PCCW SIMs on Amazon / Temu / your website; the app never handles purchase or shipping. (Future: deep-link to your Amazon listing.)
+5. **Top-up packages come from the admin portal**, not the supplier API — see `routes/v1/app/protected.php`:
+   - `GET /v1/app/recharge-packages`
+   - `POST /v1/app/recharge`
+   - `POST /v1/app/recharge/{id}/pay`
+   - `GET /v1/app/recharge-records`
+6. **Follow H5 layout exactly**, but swap "eCard from Red Tea" content with "SIM card from PCCW" content in the corresponding positions, and replace eSIM-browse with eSIM-connect.
+
+Confirmed via `AskQuestion` form before pivoting any code.
+
+**Pending rework for the pivot (session 2 continues or session 3):**
+- Reshape `ShopPage`: keep header + toggle + hero styling, drop the country list + search. SIM Card mode → "Activate PCCW SIM" CTA routing to the existing 3-step wizard. eSIM mode → "Connect eSIM" CTA routing to a new `ConnectEsimPage`.
+- Build `ConnectEsimPage`: paste LPA activation code (and later, QR scan). Calls backend to register the eSIM against the user, then navigates to My SIMs.
+- Switch top-up flow to `/v1/app/recharge-packages` + `/v1/app/recharge` + `/v1/app/recharge/{id}/pay`.
+- Remove / hide `country_packages_page.dart` + any eSIM marketplace purchase hooks (CheckoutPage keeps top-up order path only).
+- Rewrite Inbox + Contact Us UIs on top of the already-wired providers.
+- Redesign My SIMs (donut + list + install CTA for eSIMs).
+- Redesign Profile.
+- Order detail + cancel + tracking for top-up history.
+
+**Aliyun push policy reminder:** stay on `feature/evairsim-jordan`. Do NOT touch the Chinese team's `feature/pccw` branch.
 
 ---
 

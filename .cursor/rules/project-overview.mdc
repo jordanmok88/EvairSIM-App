@@ -1,0 +1,128 @@
+---
+description: Project overview for the EvairSIM Flutter app — product scope, architecture, and the April 2026 pivot
+alwaysApply: true
+---
+
+# EvairSIM Flutter App — Project Overview
+
+## Product Scope (AS OF April 19, 2026 pivot)
+
+The Flutter app is a **SIM management + top-up tool**, NOT an eSIM marketplace.
+
+### Primary feature — PCCW physical SIM
+1. Customer buys PCCW physical SIM from Amazon / Temu / Jordan's website (NOT in-app)
+2. Customer opens app → 3-step wizard (Scan barcode → Confirm → Done) binds the ICCID to their account
+3. Customer sees SIM status, usage, expiry in My SIMs
+4. Customer tops up the SIM using admin-portal-managed recharge packages
+
+### Secondary feature — Red Tea eSIM
+1. Customer receives a Red Tea eSIM activation code via email or admin push
+2. Customer opens app → "Connect eSIM" → pastes LPA code (or scans QR)
+3. App registers the eSIM to the account and shows install QR / status
+4. Customer tops up via admin-portal-managed recharge packages
+
+### Explicitly OUT of scope (April 2026)
+- ❌ **eSIM marketplace / "Shop by country"** (was called "eCard" in H5) — customers do NOT buy new eSIMs from within the app
+- ❌ **Shipping / physical SIM purchase** — no address forms, no checkout for hardware. Future: deep-link to Jordan's Amazon listing.
+- ❌ **Hot packages carousel**, popular-country promos, marketing hero unrelated to PCCW / Red Tea top-up
+
+### UI layout principle
+Follow the existing H5 layout exactly, but **swap where "eCard (Red Tea)" appeared with "SIM card (PCCW)"**, and replace "eSIM country browse" surfaces with "eSIM Connect" surfaces. The top SIM Card / eSIM segmented toggle stays.
+
+## Tech Stack
+- Flutter 3.38 + Dart 3.x, Material 3
+- Riverpod 2 (hooks_riverpod) + flutter_hooks (no `setState` for global state)
+- GoRouter (StatefulShellRoute for bottom nav)
+- Dio + `Either<Failure, T>` (fpdart) for every repository method
+- Freezed + json_serializable + build_runner
+- Hive + flutter_secure_storage (tokens, locale)
+- qr_flutter for QR rendering
+
+## Architecture (Clean)
+- `lib/domain/` — entities + repository interfaces (pure Dart)
+- `lib/data/` — Dio APIs + repository impls (depends on domain)
+- `lib/presentation/` — pages, widgets, Riverpod providers, controllers
+- `lib/core/` — theme, i18n, router, network, error, constants
+
+Never import presentation from data/domain. Never import data from domain.
+
+## Backend API base
+`https://evair.zhhwxt.cn/api` — the client adds the `/v1/...` prefix per-endpoint.
+
+### Endpoints we consume (customer side)
+Auth (`/v1/h5/auth/*`):
+- login / register / profile / password
+
+SIMs (`/v1/h5/user/*` + `/v1/h5/esim/*`):
+- `GET /v1/h5/user/sims` · `POST /v1/h5/user/sims/bind` · `POST /v1/h5/user/sims/unbind`
+- `GET /v1/h5/esim/{iccid}` · `.../usage` · `.../enable`
+
+Top-up (admin-managed, preferred): `/v1/app/*` with `auth:app` (our token works on both `auth:app` and `auth:h5`):
+- `GET /v1/app/recharge-packages` — packages surfaced by admin portal 充值套餐管理
+- `POST /v1/app/recharge` — create recharge order for a SIM
+- `POST /v1/app/recharge/{id}/pay` — pay
+- `GET /v1/app/recharge-records` · `/recharge-records/{id}`
+
+Orders: `/v1/h5/orders/*` (eSIM purchase endpoint exists but we don't use it for new eSIMs anymore)
+
+Notifications (Inbox): `GET /v1/h5/notifications` (public, admin-managed 通知管理)
+
+Live chat (Contact Us): `auth:h5`
+- `POST /v1/h5/conversations` · `POST /v1/h5/conversations/{id}/messages` · `GET /v1/h5/conversations/{id}/messages?since=`
+
+Email: `/v1/h5/email/esim-delivery` etc.
+
+### Admin portal cross-reference
+Portal source: `/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/admin` (Vue 3 / Element Plus / Geeker-Admin base).
+Every customer-facing feature has an admin-side counterpart — keep in sync.
+
+## Conventions
+
+- Backend returns `{code, msg, data}` — `code` is inconsistent (`"0"` / `"200"` / `"201"` / int `0`). Use `ResponseEnvelope` helpers.
+- Backend Chinese error messages → map to English via `BackendErrorMessages` before surfacing.
+- Every repository method returns `Either<Failure, T>`. No throws escape repos.
+- All user-facing strings go through `AppStrings` + `_K` keys (en / zh / es). Do not hardcode English.
+- `if (mounted)` before `setState` after async in StatefulWidget.
+- `useRootNavigator: true` on any `showDialog` / `showModalBottomSheet`.
+- No hardcoded `Colors.white` / `Colors.black` — use `AppColors` or theme.
+- Prefer `const` constructors aggressively (we lint for it).
+
+## Project locations
+
+- **Source of truth (local)**: `~/Development/EvairSIM-App` — NOT iCloud (iCloud path hangs `flutter create`)
+- **GitHub**: https://github.com/jordanmok88/EvairSIM-App · `main` branch
+- **Aliyun mirror**: `codeup.aliyun.com/sz0755/ZenoSIM/flutter.git` → push only to `feature/evairsim-jordan`, NEVER to `feature/pccw` (that's the Chinese team's branch, do not disturb)
+- **iCloud backup**: `~/Library/Mobile Documents/com~apple~CloudDocs/EvairSIM-App-Backup` — synced with rsync excluding `node_modules`, `.git`, `build`, `.dart_tool`
+- **H5 source of truth** (to mirror UI): `/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/Evair-H5/views/*.tsx`
+- **Backend (Laravel)**: `/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/Evair-Laravel`
+
+## Dev workflow
+
+```bash
+# Run on Chrome for fast iteration
+flutter run -d chrome --web-port 3003
+
+# Run iOS simulator
+flutter run -d "iPhone 15"
+
+# Regenerate freezed / json_serializable
+dart run build_runner build --delete-conflicting-outputs
+
+# Lint
+flutter analyze
+
+# Sandbox gotcha: build_runner needs full permissions to touch the Flutter engine stamp
+```
+
+## After every meaningful change (non-negotiable)
+1. `flutter analyze` — must be clean
+2. `git add -A && git commit -m "..." && git push origin main`
+3. `rsync -av --exclude='node_modules' --exclude='.git' --exclude='build' --exclude='.dart_tool' ~/Development/EvairSIM-App/ ~/Library/Mobile\ Documents/com~apple~CloudDocs/EvairSIM-App-Backup/`
+4. Update `docs/CONVERSATION_HISTORY.md` when a feature / decision / pivot happens.
+
+## Deferred (by design, not forgotten)
+- Real Stripe Payment Sheet (needs publishable key)
+- Native camera barcode scan for PCCW activation
+- i18n full coverage (infra done, many strings still hardcoded)
+- Apple Developer enrollment confirmation → TestFlight
+- Order detail / cancel / tracking UI
