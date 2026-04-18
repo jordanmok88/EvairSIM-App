@@ -42,6 +42,13 @@ abstract class AppColors {
   static const Color purpleAccent = Color(0xFF8B5CF6);
   static const Color purpleBg = Color(0xFFF3E8FF);
 
+  // ── Shop list accents (popular country highlight) ──
+  /// Amber star used next to popular country names (matches H5 `text-amber-400`).
+  static const Color starAmber = Color(0xFFFBBF24);
+
+  /// Faint amber wash behind popular rows (matches H5 `bg-amber-50/50`).
+  static const Color popularRowBg = Color(0xFFFFFBEB);
+
   // ── Dark page (rare) ──
   static const Color darkPage = Color(0xFF1C1C1E);
 
