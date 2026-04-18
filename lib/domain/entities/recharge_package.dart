@@ -14,6 +14,14 @@ class RechargePackage with _$RechargePackage {
     @JsonKey(name: 'validity_days') int? validityDays,
     @JsonKey(name: 'duration') int? duration,
     @JsonKey(name: 'duration_unit') String? durationUnit,
+
+    /// 'pccw' | 'esimaccess' — required when creating a recharge order so
+    /// the admin portal knows which supplier template to snapshot.
+    @JsonKey(name: 'supplier_type') @Default('pccw') String supplierType,
+
+    /// Internal bookkeeping reference — not surfaced in UI.
+    @JsonKey(name: 'package_source') String? packageSource,
+    @JsonKey(name: 'location_code') String? locationCode,
   }) = _RechargePackage;
 
   factory RechargePackage.fromJson(Map<String, dynamic> json) =>

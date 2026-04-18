@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -54,14 +56,8 @@ class ContactUsPage extends StatelessWidget {
             _ContactCard(
               icon: Icons.chat_bubble_outline,
               title: 'Live chat',
-              subtitle: 'Opens Monday–Friday, 09:00–18:00 GMT+8',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Live chat is coming soon.'),
-                  ),
-                );
-              },
+              subtitle: 'Talk to our support team right now',
+              onTap: () => context.push(RouteNames.liveChat),
             ),
           ],
         ),

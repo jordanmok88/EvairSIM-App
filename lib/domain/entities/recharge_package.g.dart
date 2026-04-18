@@ -17,6 +17,9 @@ _$RechargePackageImpl _$$RechargePackageImplFromJson(
   validityDays: (json['validity_days'] as num?)?.toInt(),
   duration: (json['duration'] as num?)?.toInt(),
   durationUnit: json['duration_unit'] as String?,
+  supplierType: json['supplier_type'] as String? ?? 'pccw',
+  packageSource: json['package_source'] as String?,
+  locationCode: json['location_code'] as String?,
 );
 
 Map<String, dynamic> _$$RechargePackageImplToJson(
@@ -30,4 +33,7 @@ Map<String, dynamic> _$$RechargePackageImplToJson(
   'validity_days': instance.validityDays,
   'duration': instance.duration,
   'duration_unit': instance.durationUnit,
+  'supplier_type': instance.supplierType,
+  'package_source': instance.packageSource,
+  'location_code': instance.locationCode,
 };

@@ -29,5 +29,6 @@ abstract class RouteNames {
   // Profile sub-routes
   static const String inbox = '/inbox';
   static const String contact = '/contact';
+  static const String liveChat = '/live-chat';
   static const String orders = '/orders';
 }

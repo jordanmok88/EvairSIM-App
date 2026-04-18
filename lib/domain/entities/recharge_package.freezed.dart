@@ -35,6 +35,17 @@ mixin _$RechargePackage {
   @JsonKey(name: 'duration_unit')
   String? get durationUnit => throw _privateConstructorUsedError;
 
+  /// 'pccw' | 'esimaccess' — required when creating a recharge order so
+  /// the admin portal knows which supplier template to snapshot.
+  @JsonKey(name: 'supplier_type')
+  String get supplierType => throw _privateConstructorUsedError;
+
+  /// Internal bookkeeping reference — not surfaced in UI.
+  @JsonKey(name: 'package_source')
+  String? get packageSource => throw _privateConstructorUsedError;
+  @JsonKey(name: 'location_code')
+  String? get locationCode => throw _privateConstructorUsedError;
+
   /// Serializes this RechargePackage to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -61,6 +72,9 @@ abstract class $RechargePackageCopyWith<$Res> {
     @JsonKey(name: 'validity_days') int? validityDays,
     @JsonKey(name: 'duration') int? duration,
     @JsonKey(name: 'duration_unit') String? durationUnit,
+    @JsonKey(name: 'supplier_type') String supplierType,
+    @JsonKey(name: 'package_source') String? packageSource,
+    @JsonKey(name: 'location_code') String? locationCode,
   });
 }
 
@@ -87,6 +101,9 @@ class _$RechargePackageCopyWithImpl<$Res, $Val extends RechargePackage>
     Object? validityDays = freezed,
     Object? duration = freezed,
     Object? durationUnit = freezed,
+    Object? supplierType = null,
+    Object? packageSource = freezed,
+    Object? locationCode = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -122,6 +139,18 @@ class _$RechargePackageCopyWithImpl<$Res, $Val extends RechargePackage>
                 ? _value.durationUnit
                 : durationUnit // ignore: cast_nullable_to_non_nullable
                       as String?,
+            supplierType: null == supplierType
+                ? _value.supplierType
+                : supplierType // ignore: cast_nullable_to_non_nullable
+                      as String,
+            packageSource: freezed == packageSource
+                ? _value.packageSource
+                : packageSource // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            locationCode: freezed == locationCode
+                ? _value.locationCode
+                : locationCode // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -146,6 +175,9 @@ abstract class _$$RechargePackageImplCopyWith<$Res>
     @JsonKey(name: 'validity_days') int? validityDays,
     @JsonKey(name: 'duration') int? duration,
     @JsonKey(name: 'duration_unit') String? durationUnit,
+    @JsonKey(name: 'supplier_type') String supplierType,
+    @JsonKey(name: 'package_source') String? packageSource,
+    @JsonKey(name: 'location_code') String? locationCode,
   });
 }
 
@@ -171,6 +203,9 @@ class __$$RechargePackageImplCopyWithImpl<$Res>
     Object? validityDays = freezed,
     Object? duration = freezed,
     Object? durationUnit = freezed,
+    Object? supplierType = null,
+    Object? packageSource = freezed,
+    Object? locationCode = freezed,
   }) {
     return _then(
       _$RechargePackageImpl(
@@ -206,6 +241,18 @@ class __$$RechargePackageImplCopyWithImpl<$Res>
             ? _value.durationUnit
             : durationUnit // ignore: cast_nullable_to_non_nullable
                   as String?,
+        supplierType: null == supplierType
+            ? _value.supplierType
+            : supplierType // ignore: cast_nullable_to_non_nullable
+                  as String,
+        packageSource: freezed == packageSource
+            ? _value.packageSource
+            : packageSource // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        locationCode: freezed == locationCode
+            ? _value.locationCode
+            : locationCode // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -223,6 +270,9 @@ class _$RechargePackageImpl extends _RechargePackage {
     @JsonKey(name: 'validity_days') this.validityDays,
     @JsonKey(name: 'duration') this.duration,
     @JsonKey(name: 'duration_unit') this.durationUnit,
+    @JsonKey(name: 'supplier_type') this.supplierType = 'pccw',
+    @JsonKey(name: 'package_source') this.packageSource,
+    @JsonKey(name: 'location_code') this.locationCode,
   }) : super._();
 
   factory _$RechargePackageImpl.fromJson(Map<String, dynamic> json) =>
@@ -251,9 +301,23 @@ class _$RechargePackageImpl extends _RechargePackage {
   @JsonKey(name: 'duration_unit')
   final String? durationUnit;
 
+  /// 'pccw' | 'esimaccess' — required when creating a recharge order so
+  /// the admin portal knows which supplier template to snapshot.
+  @override
+  @JsonKey(name: 'supplier_type')
+  final String supplierType;
+
+  /// Internal bookkeeping reference — not surfaced in UI.
+  @override
+  @JsonKey(name: 'package_source')
+  final String? packageSource;
+  @override
+  @JsonKey(name: 'location_code')
+  final String? locationCode;
+
   @override
   String toString() {
-    return 'RechargePackage(packageCode: $packageCode, name: $name, price: $price, currency: $currency, dataBytes: $dataBytes, validityDays: $validityDays, duration: $duration, durationUnit: $durationUnit)';
+    return 'RechargePackage(packageCode: $packageCode, name: $name, price: $price, currency: $currency, dataBytes: $dataBytes, validityDays: $validityDays, duration: $duration, durationUnit: $durationUnit, supplierType: $supplierType, packageSource: $packageSource, locationCode: $locationCode)';
   }
 
   @override
@@ -274,7 +338,13 @@ class _$RechargePackageImpl extends _RechargePackage {
             (identical(other.duration, duration) ||
                 other.duration == duration) &&
             (identical(other.durationUnit, durationUnit) ||
-                other.durationUnit == durationUnit));
+                other.durationUnit == durationUnit) &&
+            (identical(other.supplierType, supplierType) ||
+                other.supplierType == supplierType) &&
+            (identical(other.packageSource, packageSource) ||
+                other.packageSource == packageSource) &&
+            (identical(other.locationCode, locationCode) ||
+                other.locationCode == locationCode));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -289,6 +359,9 @@ class _$RechargePackageImpl extends _RechargePackage {
     validityDays,
     duration,
     durationUnit,
+    supplierType,
+    packageSource,
+    locationCode,
   );
 
   /// Create a copy of RechargePackage
@@ -318,6 +391,9 @@ abstract class _RechargePackage extends RechargePackage {
     @JsonKey(name: 'validity_days') final int? validityDays,
     @JsonKey(name: 'duration') final int? duration,
     @JsonKey(name: 'duration_unit') final String? durationUnit,
+    @JsonKey(name: 'supplier_type') final String supplierType,
+    @JsonKey(name: 'package_source') final String? packageSource,
+    @JsonKey(name: 'location_code') final String? locationCode,
   }) = _$RechargePackageImpl;
   const _RechargePackage._() : super._();
 
@@ -345,6 +421,20 @@ abstract class _RechargePackage extends RechargePackage {
   @override
   @JsonKey(name: 'duration_unit')
   String? get durationUnit;
+
+  /// 'pccw' | 'esimaccess' — required when creating a recharge order so
+  /// the admin portal knows which supplier template to snapshot.
+  @override
+  @JsonKey(name: 'supplier_type')
+  String get supplierType;
+
+  /// Internal bookkeeping reference — not surfaced in UI.
+  @override
+  @JsonKey(name: 'package_source')
+  String? get packageSource;
+  @override
+  @JsonKey(name: 'location_code')
+  String? get locationCode;
 
   /// Create a copy of RechargePackage
   /// with the given fields replaced by the non-null parameter values.

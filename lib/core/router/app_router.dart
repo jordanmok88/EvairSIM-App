@@ -14,6 +14,7 @@ import '../../presentation/pages/checkout/checkout_page.dart';
 import '../../presentation/pages/checkout/order_confirmation_page.dart';
 import '../../presentation/pages/profile/contact_us_page.dart';
 import '../../presentation/pages/profile/inbox_page.dart';
+import '../../presentation/pages/profile/live_chat_page.dart';
 import '../../presentation/pages/profile/orders_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
 import '../../presentation/pages/shell/root_shell.dart';
@@ -174,6 +175,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteNames.contact,
         builder: (context, state) => const ContactUsPage(),
+      ),
+      GoRoute(
+        path: RouteNames.liveChat,
+        builder: (context, state) => const LiveChatPage(),
       ),
       GoRoute(
         path: RouteNames.orders,
