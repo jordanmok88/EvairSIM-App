@@ -7,9 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../providers/auth_providers.dart';
-import '../../providers/sim_providers.dart';
 import '../../providers/sim_type_provider.dart';
-import '../shop/shop_page.dart';
 import '../sims/my_sims_page.dart';
 
 /// Primary screen post-April-2026 pivot.
@@ -18,13 +16,9 @@ import '../sims/my_sims_page.dart';
 ///   • No bottom nav.
 ///   • Sticky top bar with greeting + bell (inbox) + avatar (profile).
 ///   • Large SIM Card / eSIM segmented toggle (app-wide product switch).
-///   • Body is auto-selected (no visible sub-toggle) based on whether the
-///     user has active SIMs of the currently-selected type:
-///       ─ 0 SIMs → ShopPage  (bind / connect CTA)
-///       ─ ≥1 SIM → MySimsPage (usage + SIM list + "+ Add" button)
-///     Cross-navigation is handled by in-page affordances (MySims has an
-///     "+ Add" button that routes to the wizard, ShopPage has a "View my
-///     SIMs" chip when the user already has some).
+///   • Body is [MySimsPage] — the single source of truth. Its own empty
+///     state renders the rich "Bind your SIM" / "Connect your eSIM" hero
+///     (see `BindHeroBlock`) so there is no separate Shop surface.
 class HomeShell extends ConsumerWidget {
   const HomeShell({super.key});
 
@@ -32,14 +26,6 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).user;
     final simType = ref.watch(simTypeControllerProvider);
-    final simsAsync = ref.watch(userSimsProvider);
-
-    final hasSimsOfType = simsAsync.maybeWhen(
-      data: (sims) => sims.any((s) =>
-          (simType == SimType.esim && s.isEsim) ||
-          (simType == SimType.physical && !s.isEsim)),
-      orElse: () => false,
-    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -60,15 +46,7 @@ class HomeShell extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             const _Divider(),
-            Expanded(
-              child: IndexedStack(
-                index: hasSimsOfType ? 1 : 0,
-                children: const [
-                  ShopPage(embedded: true),
-                  MySimsPage(embedded: true),
-                ],
-              ),
-            ),
+            const Expanded(child: MySimsPage(embedded: true)),
           ],
         ),
       ),

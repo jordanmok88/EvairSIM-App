@@ -13,6 +13,7 @@ import '../../providers/sim_providers.dart';
 import '../../providers/sim_type_provider.dart';
 import '../../widgets/sims/sim_card_tile.dart';
 import '../../widgets/sims/usage_donut.dart';
+import 'widgets/bind_hero_block.dart';
 
 /// My SIMs tab — H5-faithful layout:
 ///  • Sticky header with SIM Card / eSIM segmented toggle + "+ Activate" CTA
@@ -37,20 +38,46 @@ class MySimsPage extends ConsumerWidget {
       error: (e, _) => _ErrorBlock(message: e.toString()),
       data: (all) {
         final filtered = _filter(all, simType);
-        if (all.isEmpty) return _EmptyState(simType: simType);
-        if (filtered.isEmpty) return _EmptyForType(simType: simType);
+        Future<void> refresh() async {
+          ref.invalidate(userSimsProvider);
+          await ref.read(userSimsProvider.future);
+        }
+
+        if (filtered.isEmpty) {
+          return RefreshIndicator(
+            color: AppColors.brandOrange,
+            onRefresh: refresh,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.pageHorizontal,
+                AppSpacing.md,
+                AppSpacing.pageHorizontal,
+                AppSpacing.xxl,
+              ),
+              children: [BindHeroBlock(simType: simType)],
+            ),
+          );
+        }
+
+        final isEsim = simType == SimType.esim;
         return RefreshIndicator(
           color: AppColors.brandOrange,
-          onRefresh: () async {
-            ref.invalidate(userSimsProvider);
-            await ref.read(userSimsProvider.future);
-          },
+          onRefresh: refresh,
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
             children: [
+              _AddMoreRow(
+                label: isEsim
+                    ? 'Connect another eSIM'
+                    : 'Activate another SIM Card',
+                onTap: () => context.push(
+                  isEsim ? RouteNames.connectEsim : RouteNames.physicalSim,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
               _UsageOverview(sims: filtered),
               const SizedBox(height: AppSpacing.md),
-              if (simType == SimType.esim) _InstallBanner(sims: filtered),
+              if (isEsim) _InstallBanner(sims: filtered),
               const SizedBox(height: AppSpacing.sm),
               ...filtered.expand((sim) => [
                     SimCardTile(
@@ -610,104 +637,53 @@ class _InfoBlock extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.simType});
-  final SimType simType;
+/// Small outlined pill shown above the populated SIM list. Acts as a
+/// secondary "+ add another" CTA since the user already owns SIMs of this
+/// type — the loud primary CTA lives in [BindHeroBlock] for the empty state.
+class _AddMoreRow extends StatelessWidget {
+  const _AddMoreRow({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isEsim = simType == SimType.esim;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.sim_card_outlined,
-                size: 56, color: AppColors.textWeak),
-            const SizedBox(height: AppSpacing.md),
-            const Text(
-              'No SIMs yet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.r12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
+        child: Container(
+          height: 44,
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.r12),
+            border: Border.all(
+              color: AppColors.brandOrange.withValues(alpha: 0.35),
             ),
-            const SizedBox(height: 6),
-            Text(
-              isEsim
-                  ? 'Connect an eSIM by pasting its LPA / QR code.'
-                  : 'Activate your EvairSIM card by scanning the barcode or entering the ICCID.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-                height: 1.4,
+            color: AppColors.brandOrange.withValues(alpha: 0.06),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.add_rounded,
+                  size: 18, color: AppColors.brandOrange),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.brandOrange,
+                    letterSpacing: -0.2,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            FilledButton.tonalIcon(
-              onPressed: () => context.push(
-                isEsim ? RouteNames.connectEsim : RouteNames.physicalSim,
-              ),
-              icon: Icon(
-                isEsim
-                    ? Icons.sim_card_download_outlined
-                    : Icons.qr_code_scanner,
-                size: 18,
-              ),
-              label: Text(
-                isEsim ? 'Connect eSIM' : 'Activate SIM',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyForType extends StatelessWidget {
-  const _EmptyForType({required this.simType});
-  final SimType simType;
-
-  @override
-  Widget build(BuildContext context) {
-    final isEsim = simType == SimType.esim;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isEsim ? Icons.smartphone : Icons.credit_card,
-              size: 48,
-              color: AppColors.textWeak,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              isEsim ? 'No eSIMs yet' : 'No physical SIMs yet',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              isEsim
-                  ? 'Tap "Connect" to add an eSIM.'
-                  : 'Tap "Activate" to bind your EvairSIM card.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-          ],
+              const Icon(Icons.chevron_right,
+                  size: 18, color: AppColors.brandOrange),
+            ],
+          ),
         ),
       ),
     );

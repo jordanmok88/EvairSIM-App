@@ -1,42 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/router/route_names.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
-import '../../../core/theme/app_shadows.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../providers/auth_providers.dart';
-import '../../providers/sim_type_provider.dart';
-import '../../widgets/buttons/primary_button.dart';
+import '../../../../core/router/route_names.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../providers/sim_type_provider.dart';
+import '../../../widgets/buttons/primary_button.dart';
 
-/// Shop — post-April-2026 pivot (PCCW physical + Red Tea eSIM, no marketplace).
+/// Rich empty-state surface shown inside My SIMs when the user has no bound
+/// SIMs of the currently-selected type. Post-April-2026 pivot the app doesn't
+/// sell plans, so this IS our primary CTA — a branded bind/connect hero plus
+/// a "how it works" card and a small "where to buy" note.
 ///
-/// Mirrors the H5 `ShopView` shell: white sticky header, SIM Card / eSIM
-/// segmented toggle, mode-specific hero card. Instead of the old country
-/// browse, the body now shows a clear "how-to" + a primary CTA that routes
-/// to either the PCCW activation wizard or the Red Tea eSIM connect page.
-class ShopPage extends ConsumerWidget {
-  const ShopPage({super.key, this.embedded = false});
+/// Layout (vertical):
+///   1. Hero card (dark navy "Bind your SIM Card" OR red-gradient
+///      "EvairSIM · Connect Your eSIM")
+///   2. How it works — 3 numbered steps
+///   3. Loud primary CTA routing to the activation / connect wizard
+///   4. Secondary "buy elsewhere" info note
+///
+/// Ported 1:1 from the retired `ShopPage` so users don't see any layout
+/// regression after the Shop surface was deleted.
+class BindHeroBlock extends StatelessWidget {
+  const BindHeroBlock({super.key, required this.simType});
 
-  /// When true, renders only the body content (no Scaffold, SafeArea, or
-  /// sticky header) so it can be composed inside [HomeShell]. Standalone
-  /// usage still works for deep links.
-  final bool embedded;
+  final SimType simType;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authControllerProvider).user;
-    final simType = ref.watch(simTypeControllerProvider);
-
-    final body = ListView(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.pageHorizontal,
-        AppSpacing.md,
-        AppSpacing.pageHorizontal,
-        AppSpacing.xxl,
-      ),
+  Widget build(BuildContext context) {
+    final isEsim = simType == SimType.esim;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _HeroCard(
           simType: simType,
@@ -47,357 +43,21 @@ class ShopPage extends ConsumerWidget {
         _HowItWorksCard(simType: simType),
         const SizedBox(height: AppSpacing.lg),
         PrimaryButton(
-          label: simType == SimType.physical
-              ? 'Activate SIM Card'
-              : 'Connect eSIM',
-          icon: simType == SimType.physical
-              ? Icons.credit_card
-              : Icons.link,
-          onPressed: () => simType == SimType.physical
-              ? context.push(RouteNames.physicalSim)
-              : context.push(RouteNames.connectEsim),
+          label: isEsim ? 'Connect eSIM' : 'Activate SIM Card',
+          icon: isEsim ? Icons.link : Icons.credit_card,
+          onPressed: () => context.push(
+            isEsim ? RouteNames.connectEsim : RouteNames.physicalSim,
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
         _BuyElsewhereNote(simType: simType),
       ],
     );
-
-    if (embedded) return body;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          slivers: [
-            _ShopHeader(
-              userName: user?.name,
-              userEmail: user?.email,
-              simType: simType,
-              onSimTypeChanged: (t) =>
-                  ref.read(simTypeControllerProvider.notifier).set(t),
-              onInboxTap: () => context.push(RouteNames.inbox),
-              onAvatarTap: () => context.push(RouteNames.profile),
-            ),
-            SliverFillRemaining(
-              hasScrollBody: true,
-              child: body,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Header — white sticky bar with greeting + bell + avatar + toggle.
-// ─────────────────────────────────────────────────────────────────────
-
-class _ShopHeader extends StatelessWidget {
-  const _ShopHeader({
-    required this.userName,
-    required this.userEmail,
-    required this.simType,
-    required this.onSimTypeChanged,
-    required this.onInboxTap,
-    required this.onAvatarTap,
-  });
-
-  final String? userName;
-  final String? userEmail;
-  final SimType simType;
-  final ValueChanged<SimType> onSimTypeChanged;
-  final VoidCallback onInboxTap;
-  final VoidCallback onAvatarTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverAppBar(
-      pinned: true,
-      floating: false,
-      backgroundColor: AppColors.cardBackground,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      toolbarHeight: 72,
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(64),
-        child: Container(
-          color: AppColors.cardBackground,
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.pageHorizontal,
-            0,
-            AppSpacing.pageHorizontal,
-            AppSpacing.sm + 2,
-          ),
-          child: _SimTypeSegmented(
-            value: simType,
-            onChanged: onSimTypeChanged,
-          ),
-        ),
-      ),
-      title: _HeaderTitleRow(
-        userName: userName,
-        userEmail: userEmail,
-        onInboxTap: onInboxTap,
-        onAvatarTap: onAvatarTap,
-      ),
-      titleSpacing: AppSpacing.pageHorizontal,
-      automaticallyImplyLeading: false,
-      shape: const Border(
-        bottom: BorderSide(color: AppColors.borderDefault, width: 1),
-      ),
-    );
-  }
-}
-
-class _HeaderTitleRow extends StatelessWidget {
-  const _HeaderTitleRow({
-    required this.userName,
-    required this.userEmail,
-    required this.onInboxTap,
-    required this.onAvatarTap,
-  });
-
-  final String? userName;
-  final String? userEmail;
-  final VoidCallback onInboxTap;
-  final VoidCallback onAvatarTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isGuest = userName == null && userEmail == null;
-    final displayName = userName ?? userEmail ?? 'new friend';
-    final initial = (userName?.isNotEmpty == true
-            ? userName!.characters.first
-            : (userEmail?.isNotEmpty == true
-                ? userEmail!.characters.first
-                : '?'))
-        .toUpperCase();
-
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                isGuest ? 'Hello, new friend' : 'Hello, $displayName',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                  letterSpacing: -0.3,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              const Text(
-                'Activate your SIM and top up in seconds',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textWeak,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        _HeaderIconButton(
-          icon: Icons.notifications_none_rounded,
-          onTap: onInboxTap,
-        ),
-        const SizedBox(width: 8),
-        _HeaderAvatar(initial: initial, onTap: onAvatarTap),
-      ],
-    );
-  }
-}
-
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon, required this.onTap});
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.fillLight,
-      borderRadius: BorderRadius.circular(AppRadius.r12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.r12),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(icon, size: 18, color: AppColors.textPrimary),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderAvatar extends StatelessWidget {
-  const _HeaderAvatar({required this.initial, required this.onTap});
-  final String initial;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadius.r12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.r12),
-        child: Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.r12),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.brandOrange, AppColors.brandOrangeLight],
-            ),
-          ),
-          child: Text(
-            initial,
-            style: const TextStyle(
-              color: AppColors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// SIM Card / eSIM segmented toggle.
-// ─────────────────────────────────────────────────────────────────────
-
-class _SimTypeSegmented extends StatelessWidget {
-  const _SimTypeSegmented({required this.value, required this.onChanged});
-  final SimType value;
-  final ValueChanged<SimType> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final half = (constraints.maxWidth - 8) / 2;
-        final isPhysical = value == SimType.physical;
-        return Container(
-          height: 44,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: AppColors.fillLight,
-            borderRadius: BorderRadius.circular(AppRadius.r12),
-          ),
-          child: Stack(
-            children: [
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 240),
-                curve: Curves.easeOut,
-                left: isPhysical ? 0 : half,
-                top: 0,
-                bottom: 0,
-                width: half,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.brandOrange,
-                    borderRadius: BorderRadius.circular(AppRadius.r10),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x33FF6600),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: _SegmentButton(
-                      icon: Icons.credit_card,
-                      label: 'SIM Card',
-                      selected: isPhysical,
-                      onTap: () => onChanged(SimType.physical),
-                    ),
-                  ),
-                  Expanded(
-                    child: _SegmentButton(
-                      icon: Icons.smartphone,
-                      label: 'eSIM',
-                      selected: !isPhysical,
-                      onTap: () => onChanged(SimType.esim),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _SegmentButton extends StatelessWidget {
-  const _SegmentButton({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = selected ? AppColors.white : AppColors.textSecondary;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.r10),
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Hero card — mode-specific, tappable.
+// Hero card — mode-specific.
 // ─────────────────────────────────────────────────────────────────────
 
 class _HeroCard extends StatelessWidget {
@@ -419,10 +79,7 @@ class _HeroCard extends StatelessWidget {
 }
 
 /// SIM Card (physical) hero — 1:1 port of the H5 dark navy "Bind your SIM
-/// Card" card.  Layout:
-///   • Row: orange rounded-xl icon + bold white heading + slate subtitle
-///   • Chip row: 🚚 Delivery Tracking  ·  📱 SIM Activation
-///   • Full-width orange gradient "Set Up Now >" button
+/// Card" card.
 class _PhysicalHero extends StatelessWidget {
   const _PhysicalHero({required this.onTap});
   final VoidCallback onTap;
@@ -524,8 +181,8 @@ class _PhysicalHero extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     _HeroChip(
                       icon: Icons.local_shipping_outlined,
                       label: 'Delivery Tracking',
@@ -550,9 +207,7 @@ class _PhysicalHero extends StatelessWidget {
   }
 }
 
-/// eSIM hero — 1:1 port of the H5 red-orange "EvairSIM OFFICIAL STORE"
-/// card. We keep the visual and swap the headline to reflect the
-/// April-2026 pivot (we connect eSIMs rather than sell them inside the app).
+/// eSIM hero — 1:1 port of the H5 red-orange "EvairSIM OFFICIAL STORE" card.
 class _EsimHero extends StatelessWidget {
   const _EsimHero({required this.onTap});
   final VoidCallback onTap;
@@ -617,15 +272,15 @@ class _EsimHero extends StatelessWidget {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+              const Padding(
+                padding: EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      children: const [
+                      children: [
                         _EvairLockup(),
                         Text(
                           'OFFICIAL STORE',
@@ -638,8 +293,8 @@ class _EsimHero extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    const Text(
+                    SizedBox(height: AppSpacing.md),
+                    Text(
                       'Connect',
                       style: TextStyle(
                         color: AppColors.white,
@@ -649,7 +304,7 @@ class _EsimHero extends StatelessWidget {
                         height: 1.05,
                       ),
                     ),
-                    const Text(
+                    Text(
                       'Your eSIM',
                       style: TextStyle(
                         color: _gold,
@@ -659,8 +314,8 @@ class _EsimHero extends StatelessWidget {
                         height: 1.05,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.sm + 2),
-                    const SizedBox(
+                    SizedBox(height: AppSpacing.sm + 2),
+                    SizedBox(
                       width: 250,
                       child: Text(
                         'Paste your activation code or scan the QR — your eSIM is ready in seconds.',
@@ -792,7 +447,7 @@ class _HeroCta extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// How it works — 3-step instructions, mode-specific.
+// How it works — 3 numbered steps, mode-specific.
 // ─────────────────────────────────────────────────────────────────────
 
 class _HowItWorksCard extends StatelessWidget {
@@ -939,7 +594,7 @@ class _Step {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Secondary note
+// Secondary "where to buy" note.
 // ─────────────────────────────────────────────────────────────────────
 
 class _BuyElsewhereNote extends StatelessWidget {
