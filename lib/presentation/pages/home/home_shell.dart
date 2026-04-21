@@ -8,6 +8,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/sim_type_provider.dart';
+import '../../widgets/auth/require_auth.dart';
 import '../sims/my_sims_page.dart';
 
 /// Primary screen post-April-2026 pivot.
@@ -37,7 +38,13 @@ class HomeShell extends ConsumerWidget {
               userName: user?.name,
               userEmail: user?.email,
               onInboxTap: () => context.push(RouteNames.inbox),
-              onAvatarTap: () => context.push(RouteNames.profile),
+              onAvatarTap: () async {
+                // Guest-first flow: avatar tap either prompts login or
+                // deep-links into the full profile page.
+                if (!await requireAuth(context, ref)) return;
+                if (!context.mounted) return;
+                context.push(RouteNames.profile);
+              },
             ),
             _SimTypeToggle(
               value: simType,
@@ -85,9 +92,9 @@ class _TopBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.pageHorizontal,
-        AppSpacing.md,
+        AppSpacing.lg,
         AppSpacing.pageHorizontal,
-        AppSpacing.sm,
+        AppSpacing.md,
       ),
       decoration: const BoxDecoration(color: AppColors.cardBackground),
       child: Row(
@@ -217,72 +224,43 @@ class _SimTypeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPhysical = value == SimType.physical;
     return Container(
       color: AppColors.cardBackground,
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.pageHorizontal,
-        0,
+        AppSpacing.sm,
         AppSpacing.pageHorizontal,
-        AppSpacing.sm + 2,
+        AppSpacing.md,
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final half = (constraints.maxWidth - 8) / 2;
-          final isPhysical = value == SimType.physical;
-          return Container(
-            height: 44,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: AppColors.fillLight,
-              borderRadius: BorderRadius.circular(AppRadius.r12),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppColors.fillLight,
+          borderRadius: BorderRadius.circular(AppRadius.r12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _SegBtn(
+                icon: Icons.credit_card,
+                label: 'SIM Card',
+                selected: isPhysical,
+                onTap: () => onChanged(SimType.physical),
+              ),
             ),
-            child: Stack(
-              children: [
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 240),
-                  curve: Curves.easeOut,
-                  left: isPhysical ? 0 : half,
-                  top: 0,
-                  bottom: 0,
-                  width: half,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.brandOrange,
-                      borderRadius: BorderRadius.circular(AppRadius.r10),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x33FF6600),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _SegBtn(
-                        icon: Icons.credit_card,
-                        label: 'SIM Card',
-                        selected: isPhysical,
-                        onTap: () => onChanged(SimType.physical),
-                      ),
-                    ),
-                    Expanded(
-                      child: _SegBtn(
-                        icon: Icons.smartphone,
-                        label: 'eSIM',
-                        selected: !isPhysical,
-                        onTap: () => onChanged(SimType.esim),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            const SizedBox(width: 4),
+            Expanded(
+              child: _SegBtn(
+                icon: Icons.smartphone,
+                label: 'eSIM',
+                selected: !isPhysical,
+                onTap: () => onChanged(SimType.esim),
+              ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
@@ -302,28 +280,35 @@ class _SegBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: selected ? AppColors.brandOrange : Colors.transparent,
       borderRadius: BorderRadius.circular(AppRadius.r10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: selected ? AppColors.white : AppColors.textSecondary,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.r10),
+        child: Container(
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? AppColors.white : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? AppColors.white : AppColors.textSecondary,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: selected ? AppColors.white : AppColors.textSecondary,
-              letterSpacing: -0.2,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

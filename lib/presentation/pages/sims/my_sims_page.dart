@@ -9,8 +9,10 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../domain/entities/sim.dart';
+import '../../providers/auth_providers.dart';
 import '../../providers/sim_providers.dart';
 import '../../providers/sim_type_provider.dart';
+import '../../widgets/auth/require_auth.dart';
 import '../../widgets/sims/sim_card_tile.dart';
 import '../../widgets/sims/usage_donut.dart';
 import 'widgets/bind_hero_block.dart';
@@ -30,8 +32,43 @@ class MySimsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sims = ref.watch(userSimsProvider);
     final simType = ref.watch(simTypeControllerProvider);
+    final isAuthed = ref.watch(authControllerProvider).isAuthenticated;
+
+    // Guest mode: SIM list is a private endpoint and should never be
+    // called without a token. Render the static "Bind your SIM /
+    // Connect your eSIM" hero directly so guests can browse freely.
+    if (!isAuthed) {
+      final guestBody = ListView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.pageHorizontal,
+          AppSpacing.md,
+          AppSpacing.pageHorizontal,
+          AppSpacing.xxl,
+        ),
+        children: [BindHeroBlock(simType: simType)],
+      );
+      if (embedded) return guestBody;
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(
+                simType: simType,
+                onChangeType: (t) =>
+                    ref.read(simTypeControllerProvider.notifier).set(t),
+                onAdd: () => _handleAdd(context, ref, simType),
+              ),
+              Expanded(child: guestBody),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final sims = ref.watch(userSimsProvider);
 
     final body = sims.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -70,9 +107,15 @@ class MySimsPage extends ConsumerWidget {
                 label: isEsim
                     ? 'Connect another eSIM'
                     : 'Activate another SIM Card',
-                onTap: () => context.push(
-                  isEsim ? RouteNames.connectEsim : RouteNames.physicalSim,
-                ),
+                onTap: () async {
+                  if (!await requireAuth(context, ref)) return;
+                  if (!context.mounted) return;
+                  context.push(
+                    isEsim
+                        ? RouteNames.connectEsim
+                        : RouteNames.physicalSim,
+                  );
+                },
               ),
               const SizedBox(height: AppSpacing.md),
               _UsageOverview(sims: filtered),
@@ -104,7 +147,7 @@ class MySimsPage extends ConsumerWidget {
               simType: simType,
               onChangeType: (t) =>
                   ref.read(simTypeControllerProvider.notifier).set(t),
-              onAdd: () => _handleAdd(context, simType),
+              onAdd: () => _handleAdd(context, ref, simType),
             ),
             Expanded(child: body),
           ],
@@ -120,7 +163,13 @@ class MySimsPage extends ConsumerWidget {
     }).toList(growable: false);
   }
 
-  void _handleAdd(BuildContext context, SimType type) {
+  Future<void> _handleAdd(
+    BuildContext context,
+    WidgetRef ref,
+    SimType type,
+  ) async {
+    if (!await requireAuth(context, ref)) return;
+    if (!context.mounted) return;
     if (type == SimType.esim) {
       context.push(RouteNames.connectEsim);
     } else {

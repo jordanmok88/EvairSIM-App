@@ -1,0 +1,73 @@
+---
+description: Auto-save workflow — commit, push to GitHub + Aliyun, and rsync iCloud backup after every change
+alwaysApply: true
+---
+
+# Auto-Save Workflow — Evair APP (Flutter)
+
+Jordan has two projects. When he says "save" or "save my work", save BOTH.
+Do NOT ask permission — just run the commands.
+
+## The two projects
+
+| # | Project | Path | Remotes | Backup |
+|---|---------|------|---------|--------|
+| 1 | **Evair H5** (React/Vite) | `/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/Evair-H5` | `origin` → GitHub (`jordanmok88/Evair-H5`) | iCloud Drive hosts the project dir itself |
+| 2 | **Evair APP** (this repo, Flutter) | `/Users/jordanmok/Development/EvairSIM-App` | `origin` → GitHub (`jordanmok88/EvairSIM-App`); `aliyun` → `codeup.aliyun.com/sz0755/ZenoSIM/flutter.git` on `feature/evairsim-jordan` | rsync to `~/Library/Mobile Documents/com~apple~CloudDocs/EvairSIM-App-Backup` |
+
+### Critical: this repo's working copy
+
+The REAL working copy is `~/Development/EvairSIM-App`.
+`~/Library/Mobile Documents/com~apple~CloudDocs/EvairSIM-App-Backup` is a RSYNC MIRROR, not the working copy. Never edit files there — they get overwritten on next save.
+
+Reason: `flutter create` / `pub get` hangs inside iCloud Drive (fake-IP / VPN pub.dev resolution). Local-only path is mandatory.
+
+## One command saves everything (both projects)
+
+```bash
+bash "/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/save-all.sh"
+# or with a custom commit message:
+bash "/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/save-all.sh" "feat: xyz"
+```
+
+## Save just this project (Flutter)
+
+```bash
+bash "$HOME/Development/EvairSIM-App/scripts/save.sh"
+# or with a custom commit message:
+bash "$HOME/Development/EvairSIM-App/scripts/save.sh" "feat: xyz"
+```
+
+`scripts/save.sh` will:
+1. `git add -A && git commit -m "<msg>"` (skipped if no changes)
+2. `git push origin <branch>`
+3. `git push aliyun <branch>:feature/evairsim-jordan` — **never touch `feature/pccw` (China team's branch)**
+4. `rsync` working tree → iCloud backup (excluding `.git`, `.dart_tool`, `build`, iOS/Android build artifacts)
+5. Exit non-zero if any step fails
+
+## When to auto-save
+
+Save after any of these, without asking:
+- Any code change lands
+- The user says "save", "save my work", "commit", "push"
+- A feature/milestone is done
+- A bug fix is verified
+- Before ending a session
+
+## Aliyun push policy
+
+- Push `main` to Aliyun's `feature/evairsim-jordan`.
+- NEVER push to `feature/pccw` (that's the China team's branch).
+- NEVER force push to Aliyun.
+
+## Context persistence
+
+When a meaningful change lands, update:
+- `docs/CONVERSATION_HISTORY.md` — dated session log
+- The relevant `.cursor/rules/*.mdc`
+
+## Common gotchas
+
+- First push after a window reload kills the `flutter run` process; restart it from this directory: `flutter run -d web-server --web-port=8080 --web-hostname=localhost`.
+- `build_runner` inside a sandboxed shell fails on the Flutter engine stamp — run outside sandbox.
+- `pubspec.yaml` codegen: always use `dart run build_runner build --delete-conflicting-outputs`.

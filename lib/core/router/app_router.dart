@@ -23,7 +23,6 @@ import '../../presentation/pages/sims/my_sims_page.dart';
 import '../../presentation/pages/sims/physical_sim_page.dart';
 import '../../presentation/pages/sims/sim_detail_page.dart';
 import '../../presentation/pages/sims/top_up_page.dart';
-import '../../presentation/pages/welcome/welcome_page.dart';
 import '../../presentation/providers/auth_providers.dart';
 import 'route_names.dart';
 
@@ -31,7 +30,7 @@ final _rootNavKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: RouteNames.welcome,
+    initialLocation: RouteNames.home,
     navigatorKey: _rootNavKey,
     debugLogDiagnostics: false,
     refreshListenable: _GoRouterRefreshStream(
@@ -39,15 +38,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ),
     redirect: (context, state) {
       final auth = ref.read(authControllerProvider);
-      final loc = state.matchedLocation;
-      final atAuthScreen = loc == RouteNames.login ||
-          loc == RouteNames.register ||
-          loc == RouteNames.forgotPassword ||
-          loc == RouteNames.welcome;
-
       if (!auth.bootstrapped) return null;
 
-      if (!auth.isAuthenticated && !atAuthScreen) return RouteNames.login;
+      final loc = state.matchedLocation;
+      // When signed-in users land on auth/welcome screens (e.g. deep links or
+      // post-logout history), bounce them to home. Guests are allowed to
+      // browse freely — individual gated actions prompt the LoginModal.
       if (auth.isAuthenticated &&
           (loc == RouteNames.welcome ||
               loc == RouteNames.login ||
@@ -57,10 +53,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: RouteNames.welcome,
-        builder: (context, state) => const WelcomePage(),
-      ),
       GoRoute(
         path: RouteNames.login,
         builder: (context, state) => const LoginPage(),

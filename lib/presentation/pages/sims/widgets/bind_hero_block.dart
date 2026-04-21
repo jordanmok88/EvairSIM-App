@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../providers/sim_type_provider.dart';
+import '../../../widgets/auth/require_auth.dart';
 import '../../../widgets/buttons/primary_button.dart';
 
 /// Rich empty-state surface shown inside My SIMs when the user has no bound
@@ -23,21 +25,28 @@ import '../../../widgets/buttons/primary_button.dart';
 ///
 /// Ported 1:1 from the retired `ShopPage` so users don't see any layout
 /// regression after the Shop surface was deleted.
-class BindHeroBlock extends StatelessWidget {
+class BindHeroBlock extends ConsumerWidget {
   const BindHeroBlock({super.key, required this.simType});
 
   final SimType simType;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isEsim = simType == SimType.esim;
+
+    Future<void> goActivate() async {
+      if (!await requireAuth(context, ref)) return;
+      if (!context.mounted) return;
+      context.push(isEsim ? RouteNames.connectEsim : RouteNames.physicalSim);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _HeroCard(
           simType: simType,
-          onPhysical: () => context.push(RouteNames.physicalSim),
-          onEsim: () => context.push(RouteNames.connectEsim),
+          onPhysical: goActivate,
+          onEsim: goActivate,
         ),
         const SizedBox(height: AppSpacing.lg),
         _HowItWorksCard(simType: simType),
@@ -45,9 +54,7 @@ class BindHeroBlock extends StatelessWidget {
         PrimaryButton(
           label: isEsim ? 'Connect eSIM' : 'Activate SIM Card',
           icon: isEsim ? Icons.link : Icons.credit_card,
-          onPressed: () => context.push(
-            isEsim ? RouteNames.connectEsim : RouteNames.physicalSim,
-          ),
+          onPressed: goActivate,
         ),
         const SizedBox(height: AppSpacing.lg),
         _BuyElsewhereNote(simType: simType),
@@ -184,14 +191,14 @@ class _PhysicalHero extends StatelessWidget {
                 const Row(
                   children: [
                     _HeroChip(
-                      icon: Icons.local_shipping_outlined,
-                      label: 'Delivery Tracking',
+                      icon: Icons.smartphone,
+                      label: 'SIM Activation',
                       textColor: _slate300,
                     ),
                     SizedBox(width: AppSpacing.md),
                     _HeroChip(
-                      icon: Icons.smartphone,
-                      label: 'SIM Activation',
+                      icon: Icons.local_offer_outlined,
+                      label: 'Flexible Top-ups',
                       textColor: _slate300,
                     ),
                   ],
