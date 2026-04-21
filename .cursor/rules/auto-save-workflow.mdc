@@ -12,7 +12,7 @@ Do NOT ask permission — just run the commands.
 
 | # | Project | Path | Remotes | Backup |
 |---|---------|------|---------|--------|
-| 1 | **Evair H5** (React/Vite) | `/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/Evair-H5` | `origin` → GitHub (`jordanmok88/Evair-H5`) | iCloud Drive hosts the project dir itself |
+| 1 | **Evair H5** (React/Vite) | `/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/Evair-H5` | `origin` → GitHub (`jordanmok88/Evair-H5`); `aliyun` → `codeup.aliyun.com/sz0755/ZenoSIM/H5/EvairH5.git` | iCloud Drive hosts the project dir itself |
 | 2 | **Evair APP** (this repo, Flutter) | `/Users/jordanmok/Development/EvairSIM-App` | `origin` → GitHub (`jordanmok88/EvairSIM-App`); `aliyun` → `codeup.aliyun.com/sz0755/ZenoSIM/flutter.git` on `feature/evairsim-jordan` | rsync to `~/Library/Mobile Documents/com~apple~CloudDocs/EvairSIM-App-Backup` |
 
 ### Critical: this repo's working copy
