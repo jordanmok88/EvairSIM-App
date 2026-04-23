@@ -118,47 +118,74 @@ class _WebViewShellPageState extends State<WebViewShellPage> {
       );
     }
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
-        final shouldPop = await _handleBackPress();
-        if (shouldPop && mounted) {
-          // No more history inside WebView — let the system pop (which on
-          // the root route exits the app on Android).
-          SystemNavigator.pop();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
-        body: SafeArea(
-          top: false,
-          child: Stack(
-            children: [
-              _buildWebView(),
-              if (_isLoading) const _SplashOverlay(),
-              if (_hasError)
-                _ErrorOverlay(
-                  message: _errorMessage,
-                  onRetry: () {
-                    setState(() {
-                      _hasError = false;
-                      _errorMessage = null;
-                      _isLoading = true;
-                    });
-                    _controller?.loadUrl(
-                      urlRequest: URLRequest(url: WebUri(AppConstants.h5Url)),
-                    );
-                  },
-                ),
-            ],
+    // Follow the OS light/dark setting so the native shell chrome (status
+    // bar icons, Scaffold background behind the WebView during load) never
+    // clashes with the H5 theme. H5 itself listens to
+    // `prefers-color-scheme` via Tailwind v4's custom `dark:` variant — the
+    // two stay in sync automatically without needing a bridge message.
+    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    final bgColor =
+        isDark ? const Color(0xFF0B1120) : const Color(0xFFFFFFFF);
+    // SystemUiOverlayStyle's `statusBarIconBrightness` is the *contrast* of
+    // the icons against the status bar background, i.e. Brightness.light =
+    // white icons (for a dark phone background) and Brightness.dark = black
+    // icons (for a light phone background). Naming is historically
+    // confusing; we compute it explicitly.
+    final overlayStyle = SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light, // iOS
+      statusBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark, // Android
+      systemNavigationBarColor: bgColor,
+      systemNavigationBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark,
+    );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlayStyle,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          final shouldPop = await _handleBackPress();
+          if (shouldPop && mounted) {
+            // No more history inside WebView — let the system pop (which on
+            // the root route exits the app on Android).
+            SystemNavigator.pop();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: bgColor,
+          body: SafeArea(
+            top: false,
+            child: Stack(
+              children: [
+                _buildWebView(isDark: isDark),
+                if (_isLoading) const _SplashOverlay(),
+                if (_hasError)
+                  _ErrorOverlay(
+                    isDark: isDark,
+                    message: _errorMessage,
+                    onRetry: () {
+                      setState(() {
+                        _hasError = false;
+                        _errorMessage = null;
+                        _isLoading = true;
+                      });
+                      _controller?.loadUrl(
+                        urlRequest: URLRequest(url: WebUri(AppConstants.h5Url)),
+                      );
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildWebView() {
+  Widget _buildWebView({required bool isDark}) {
     return InAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(AppConstants.h5Url)),
       initialSettings: InAppWebViewSettings(
@@ -174,7 +201,12 @@ class _WebViewShellPageState extends State<WebViewShellPage> {
         // heuristics. Spoofing a modern Chrome UA keeps H5 behaviour
         // identical to the real browser.
         userAgent: _userAgent(),
-        transparentBackground: false,
+        // Make the WebView's own background transparent so the Scaffold's
+        // themed bgColor shows through during the brief moment between
+        // `onLoadStart` and the first paint of the new document. Without
+        // this, the WebView flashes a hard-coded white on every navigation
+        // which looks awful on a dark device.
+        transparentBackground: true,
         // Leave most security defaults alone — H5 is trusted and we load
         // a known origin only.
       ),
@@ -431,35 +463,57 @@ class _SignalBarsLoaderState extends State<_SignalBarsLoader>
 
 /// Shown when the main frame fails to load (airplane mode, DNS, 5xx, …).
 class _ErrorOverlay extends StatelessWidget {
-  const _ErrorOverlay({required this.onRetry, this.message});
+  const _ErrorOverlay({
+    required this.onRetry,
+    required this.isDark,
+    this.message,
+  });
 
   final VoidCallback onRetry;
   final String? message;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
+    // Pulled from the same palette as the H5 `dark:` styles so the error
+    // screen doesn't jar the user when swapping between themes. Title is
+    // high-contrast, body is the usual muted gray, Retry keeps the brand
+    // orange in both modes.
+    final bgColor =
+        isDark ? const Color(0xFF0B1120) : const Color(0xFFFFFFFF);
+    final titleColor =
+        isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
+    final bodyColor =
+        isDark ? const Color(0xFF9CA3AF) : const Color(0xFF666666);
+    final iconColor =
+        isDark ? const Color(0xFF64748B) : const Color(0xFF999999);
+
     return Container(
-      color: Colors.white,
+      color: bgColor,
       padding: const EdgeInsets.symmetric(horizontal: 32),
       alignment: Alignment.center,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_off_rounded,
             size: 64,
-            color: Color(0xFF999999),
+            color: iconColor,
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             "Can't reach EvairSIM right now",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: titleColor,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             message ?? 'Check your internet connection and try again.',
-            style: const TextStyle(fontSize: 14, color: Color(0xFF666666)),
+            style: TextStyle(fontSize: 14, color: bodyColor),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
