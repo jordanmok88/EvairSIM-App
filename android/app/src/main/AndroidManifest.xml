@@ -3,6 +3,17 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
+    <!--
+        Camera access is declared here so the WebView can request it when H5
+        opens a QR scanner (e.g. activating a physical SIM by scanning the
+        code on the back of the card). `required="false"` lets the app still
+        install on devices without a camera (tablets, emulators) and simply
+        hides the scan button in H5.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
     <application
         android:label="evair_sim"
         android:name="${applicationName}"
