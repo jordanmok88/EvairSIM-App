@@ -82,16 +82,36 @@ flutter clean && flutter pub get
 - `lib/presentation/widgets/*` — reusable UI atoms
 - `lib/core/*` — theme, router, network, i18n, error
 
-## Product Scope (post-April-2026 pivot)
+## Product Scope (current — April 21 2026, post-pivot-reversal)
 
-1. **PCCW physical SIM** = PRIMARY — bind by ICCID/barcode → top up
-2. **Red Tea eSIM** = SECONDARY — customer "connects" an eSIM they already own (LPA code) → top up
-3. **No eSIM marketplace** (`ShopPage` removed; `HomeShell` unifies under `MySimsPage`)
-4. **No shipping** — customers buy physical SIMs on Amazon/Temu
-5. **Top-up packages come from admin portal**, not supplier API:
+Jordan reversed the April 2026 "no eSIM marketplace" decision. The Flutter
+APP is now product-parity with the H5 marketplace for eSIM, while keeping
+the physical-SIM activation flow as-is.
+
+1. **eSIM marketplace = PRIMARY in-app** (H5 parity).
+   - `EsimShopPage` (`lib/presentation/pages/shop/esim_shop_page.dart`)
+     renders inside `HomeShell` whenever the SIM-type toggle is on `eSIM`.
+   - Browse by country, hot packages grid, tap → `/checkout` → existing
+     Stripe-based checkout pipeline (`CheckoutPage` → `OrderConfirmationPage`).
+   - "Connect existing eSIM" remains as a SECONDARY link inside the shop
+     for customers who received an eSIM by email (the legacy bind flow at
+     `/connect-esim`).
+2. **PCCW physical SIM** — bind by ICCID/barcode → top up. Sold on
+   Amazon / Temu, no in-app shipping.
+3. **Catalog API**: `/v1/h5/packages/locations`, `/v1/h5/packages?location=`,
+   `/v1/h5/packages/hot` (already wired through `PackageRepository` +
+   `shop_providers`).
+4. **Top-up packages still come from admin portal** for already-bound SIMs:
    - `GET /v1/app/recharge-packages`
    - `POST /v1/app/recharge`
    - `POST /v1/app/recharge/{id}/pay`
+5. **Payment platform decision (open)**:
+   - iOS: Apple IAP planned (App Store rejection risk for Stripe digital
+     goods). Will require an `in_app_purchase` integration before ship.
+   - Android: Stripe stays.
+   - Current `CheckoutPage` is Stripe-only — fine for web/Android preview,
+     fine for TestFlight internal testing, MUST be replaced with IAP before
+     App Store submission.
 
 ## Gotchas
 

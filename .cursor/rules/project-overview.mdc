@@ -5,29 +5,70 @@ alwaysApply: true
 
 # EvairSIM Flutter App — Project Overview
 
-## Product Scope (AS OF April 19, 2026 pivot)
+## Product Scope (CURRENT — April 21 2026, post-pivot-reversal)
 
-The Flutter app is a **SIM management + top-up tool**, NOT an eSIM marketplace.
+> History: An April 19 2026 pivot removed the in-app eSIM marketplace. On
+> April 21 2026 Jordan reversed that decision — the Flutter APP is now
+> product-parity with the H5 marketplace for eSIM, while keeping the
+> physical-SIM activation flow.
 
-### Primary feature — PCCW physical SIM
-1. Customer buys PCCW physical SIM from Amazon / Temu / Jordan's website (NOT in-app)
-2. Customer opens app → 3-step wizard (Scan barcode → Confirm → Done) binds the ICCID to their account
-3. Customer sees SIM status, usage, expiry in My SIMs
-4. Customer tops up the SIM using admin-portal-managed recharge packages
+The app does TWO things, switched by the SIM Card / eSIM toggle in HomeShell:
 
-### Secondary feature — Red Tea eSIM
-1. Customer receives a Red Tea eSIM activation code via email or admin push
-2. Customer opens app → "Connect eSIM" → pastes LPA code (or scans QR)
-3. App registers the eSIM to the account and shows install QR / status
-4. Customer tops up via admin-portal-managed recharge packages
+### eSIM tab → marketplace (PRIMARY, H5 parity)
+1. Customer browses by country or hot packages on `EsimShopPage`
+   (`lib/presentation/pages/shop/esim_shop_page.dart`).
+2. Tapping a package → `/checkout` (existing `CheckoutPage`) → email
+   capture → payment → `/order-confirmation`.
+3. Backend issues the eSIM, emails the LPA code, and the new SIM appears
+   in `My SIMs` (deep link from order confirmation).
+4. Customer who already received an eSIM by email uses the small
+   "Already got one by email? Connect" link inside the shop, which
+   reaches the legacy `/connect-esim` bind page.
 
-### Explicitly OUT of scope (April 2026)
-- ❌ **eSIM marketplace / "Shop by country"** (was called "eCard" in H5) — customers do NOT buy new eSIMs from within the app
-- ❌ **Shipping / physical SIM purchase** — no address forms, no checkout for hardware. Future: deep-link to Jordan's Amazon listing.
-- ❌ **Hot packages carousel**, popular-country promos, marketing hero unrelated to PCCW / Red Tea top-up
+### SIM Card tab → bind / activate physical PCCW SIM (UNCHANGED)
+1. Customer buys PCCW physical SIM from Amazon / Temu / Jordan's website
+   (NOT in-app — physical-goods checkout still out of scope).
+2. 3-step wizard (Scan barcode → Confirm → Done) binds the ICCID.
+3. Top up using admin-portal-managed recharge packages.
 
-### UI layout principle
-Follow the existing H5 layout exactly, but **swap where "eCard (Red Tea)" appeared with "SIM card (PCCW)"**, and replace "eSIM country browse" surfaces with "eSIM Connect" surfaces. The top SIM Card / eSIM segmented toggle stays.
+### Still OUT of scope
+- ❌ Physical-SIM in-app purchase / shipping / address forms — Amazon links only.
+- ❌ Mid-pivot "Connect eSIM as the primary CTA" hero — still shipped via
+  `BindHeroBlock` for the SIM Card tab's empty state, but eSIM users now
+  see the shop instead.
+
+### eSIM 1-Tap Install (added April 21 2026)
+The install bottom-sheet (`_InstallSheet` in `my_sims_page.dart`) now shows
+a branded "1-Tap Install" CTA on iOS / Android via `EsimInstaller`
+(`lib/core/esim/esim_installer.dart`):
+
+- **iOS** → opens Apple's public Universal Link
+  `https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=<LPA>`
+  which transfers control to Settings → Add Cellular Plan with the SM-DP+
+  address and matching ID pre-filled. No private entitlement needed.
+- **Android** → tries the lowercase `LPA:` URI scheme; falls back to
+  opening the Settings package. A future enhancement can call
+  `EuiccManager.downloadSubscription` natively, but that requires the
+  app's signing-cert hash to be present in the eUICC's ARA-M file (only
+  the SIM CSM can do this at the factory).
+- **Web / desktop** → CTA hidden; QR code shown instead.
+
+The QR code remains as a fallback (button "Show QR code instead", or
+auto-shown if the deep-link returns `failed`/`openedSettings`).
+
+### Catalog wiring
+- `PackageRepository` + `shop_providers.dart` (already existed but were
+  dormant) drive the shop. Endpoints used:
+  - `GET /v1/h5/packages/locations` → countries
+  - `GET /v1/h5/packages?location=XX&page=1&per_page=50` → country plans
+  - `GET /v1/h5/packages/hot?limit=12` → hero grid
+
+### Payment status (open question)
+- Web / Android: existing Stripe checkout pipeline works.
+- iOS App Store: digital-goods rules require **Apple IAP** for in-app
+  purchase. Stripe checkout will be rejected. Replace `CheckoutPage`'s
+  payment widget with `in_app_purchase` before App Store submission.
+- TestFlight internal builds can keep Stripe for now.
 
 ## Tech Stack
 - Flutter 3.38 + Dart 3.x, Material 3

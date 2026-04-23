@@ -1,5 +1,5 @@
 name: evair_sim
-description: EvairSIM - eSIM & Physical SIM Management App
+description: EvairSIM — native shell hosting the H5 site (evair.zhhwxt.cn) inside a WebView. See docs/native-bridge-api.md for the JS↔Dart bridge the H5 can call.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,55 +9,25 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_localizations:
-    sdk: flutter
 
-  # State Management
-  flutter_hooks: ^0.20.5
-  hooks_riverpod: ^2.6.1
-  riverpod_annotation: ^2.6.1
+  # The entire app surface is rendered by H5 inside this WebView.
+  # Override the URL with --dart-define=H5_URL=http://127.0.0.1:3000
+  # for local development; defaults to production H5.
+  flutter_inappwebview: ^6.1.5
 
-  # Router
-  go_router: ^14.8.1
+  # Native bridges exposed to H5 via window.evair.*
+  url_launcher: ^6.3.1   # openExternal()
+  share_plus: ^10.1.2    # share()
 
-  # Network
-  dio: ^5.7.0
-  json_annotation: ^4.9.0
-
-  # Storage
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  flutter_secure_storage: ^9.2.4
-
-  # UI
-  google_fonts: ^6.2.1
-  cached_network_image: ^3.4.1
-  shimmer: ^3.0.0
-  qr_flutter: ^4.1.0
-  fl_chart: ^0.69.0
-
-  # Utils
+  # Misc
   intl: ^0.20.2
-  url_launcher: ^6.3.1
-  share_plus: ^10.1.2
-  clipboard: ^0.1.3
-  freezed_annotation: ^2.4.4
-
-  # Functional Programming (Either pattern)
-  fpdart: ^1.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
 
-  # Code Generation
-  build_runner: ^2.4.13
-  riverpod_generator: ^2.6.3
-  json_serializable: ^6.9.4
-  freezed: ^2.5.7
-
-  # App assets
+  # App assets / launcher icon / native splash
   flutter_launcher_icons: ^0.14.1
   flutter_native_splash: ^2.4.3
 
@@ -65,19 +35,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/
-  fonts:
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter/Inter-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/Inter/Inter-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Inter/Inter-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Inter/Inter-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/Inter/Inter-ExtraBold.ttf
-          weight: 800
 
 flutter_launcher_icons:
   android: "launcher_icon"
@@ -92,15 +49,20 @@ flutter_launcher_icons:
     theme_color: "#FF6600"
 
 flutter_native_splash:
+  # Keep the splash white on both light and dark system themes so the
+  # orange / red Evair wordmark always reads on the brand's canonical
+  # white background. Overriding `color_dark` to white prevents the
+  # native launch screen from flipping to near-black in iOS / Android
+  # dark mode (which made the logo appear on a black background).
   color: "#FFFFFF"
   image: assets/icon/splash_logo.png
-  color_dark: "#1C1C1E"
+  color_dark: "#FFFFFF"
   image_dark: assets/icon/splash_logo.png
   android_12:
     image: assets/icon/splash_logo.png
     color: "#FFFFFF"
     image_dark: assets/icon/splash_logo.png
-    color_dark: "#1C1C1E"
+    color_dark: "#FFFFFF"
   ios: true
   android: true
   web: false

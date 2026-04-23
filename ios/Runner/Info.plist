@@ -72,5 +72,60 @@
 		<string>EvairSIM uses the camera to scan QR codes on the back of your SIM card when activating a physical SIM.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>EvairSIM needs access to your photo library so you can save your eSIM QR code for later scanning.</string>
+		<!--
+			iOS 14+ requires this string whenever an app accesses the
+			local network (e.g. the WebView shell pointing at the dev
+			Mac's 192.168.x.y Vite server). Without it, iOS silently
+			terminates the app on first local-network access. In
+			production the app talks only to evair.zhhwxt.cn so this
+			prompt never surfaces to end users.
+		-->
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>EvairSIM connects to the development server on your local network while testing. This only applies during development.</string>
+		<!--
+			Dev-only ATS exceptions. The WebView shell points at a Vite dev
+			server on the developer's Mac (e.g. 192.168.3.82:3000) when
+			launched with `--dart-define=H5_URL=http://<mac-ip>:3000`.
+			Production traffic stays on https://evair.zhhwxt.cn which does
+			NOT need any exception.
+
+			`NSAllowsLocalNetworking` is Apple's official flag for "permit
+			cleartext traffic on local/private networks". It allows
+			connections to any RFC 1918 private IP (10.*, 172.16-31.*,
+			192.168.*) plus .local and link-local, which is what we need
+			for hot-reload development against a laptop. Public HTTP URLs
+			remain blocked by the default ATS policy.
+		-->
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<false/>
+			<key>NSAllowsLocalNetworking</key>
+			<true/>
+			<key>NSExceptionDomains</key>
+			<dict>
+				<key>localhost</key>
+				<dict>
+					<key>NSExceptionAllowsInsecureHTTPLoads</key>
+					<true/>
+					<key>NSIncludesSubdomains</key>
+					<true/>
+				</dict>
+			</dict>
+		</dict>
+		<!--
+			Schemes the APP can open via url_launcher / share_plus. Without
+			these entries iOS 9+ silently blocks opening mail / dialler /
+			whatsapp from H5's `window.evair.openExternal(...)`.
+		-->
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>tel</string>
+			<string>sms</string>
+			<string>mailto</string>
+			<string>http</string>
+			<string>https</string>
+			<string>whatsapp</string>
+		</array>
 	</dict>
 </plist>

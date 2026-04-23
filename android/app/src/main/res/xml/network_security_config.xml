@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dev-only cleartext exceptions for the WebView shell.
+  The APP loads the production H5 (https://evair.zhhwxt.cn) by default,
+  but when launched with `--dart-define=H5_URL=http://127.0.0.1:3000`
+  (iOS sim) or `http://10.0.2.2:3000` (Android emulator) we need to
+  permit cleartext traffic to those dev hosts. Production traffic
+  remains HTTPS-only by virtue of `cleartextTrafficPermitted="false"`
+  being the platform default for every host not listed below.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
