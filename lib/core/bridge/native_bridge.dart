@@ -7,6 +7,8 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../push/push_notification_service.dart';
+
 /// JS↔Dart bridge exposed to the H5 site.
 ///
 /// After [register] is called on an [InAppWebViewController], H5 can call:
@@ -19,11 +21,22 @@ import 'package:url_launcher/url_launcher.dart';
 /// await window.evair.haptic('light');
 /// ```
 ///
-/// The bridge is intentionally small in phase 1. Phase 2 will add:
+/// Phase 2 bridge additions (shipped now):
+///   * registerForPush()      — asks iOS / Android for notification
+///                              permission, returns the FCM / APNs
+///                              device token so H5 can POST it to
+///                              Laravel's /push/register endpoint.
+///
+/// Still planned:
 ///   * installEsim(lpa)       — native CTCellularPlanProvisioning
 ///   * scanQr()               — mobile_scanner
-///   * registerPush(token)    — FCM / APNs device registration
 ///   * biometricAuth()        — local_auth
+///
+/// Push messages received by the device call BACK into H5 via the
+/// following handlers that H5 can register (all take a JSON payload):
+///   * window.evair.onPushTokenReady({ token })
+///   * window.evair.onPushReceived({ ...data })   — foreground arrival
+///   * window.evair.onPushOpened({ ...data })     — user tapped banner
 ///
 /// See docs/native-bridge-api.md for the contract shipped to H5 devs.
 class NativeBridge {
@@ -43,6 +56,11 @@ class NativeBridge {
     _add(controller, 'copyToClipboard', _copyToClipboard);
     _add(controller, 'getAppInfo', _getAppInfo);
     _add(controller, 'haptic', _haptic);
+    _add(controller, 'registerForPush', _registerForPush);
+
+    // Hand the live controller to the push service so it can push
+    // token-ready / push-received events BACK into H5 as JS callbacks.
+    PushNotificationService.instance.attachWebView(controller);
 
     // Inject a thin JS shim so H5 calls read naturally. The raw
     // `window.flutter_inappwebview.callHandler` returns a Promise already,
@@ -111,6 +129,26 @@ class NativeBridge {
       'version': '1.0.0',
       'buildNumber': '1',
     };
+  }
+
+  /// Ask the OS for notification permission and return the device push
+  /// token. H5 should call this right after a successful login and POST
+  /// the resulting token to `/api/v1/h5/push/register`.
+  ///
+  /// Returns `{ ok: true, token: '<fcm_token>' }` on success,
+  /// `{ ok: false, reason: 'denied' }` if the user refused, or
+  /// `{ ok: false, reason: 'unsupported' }` on platforms without push
+  /// (Flutter Web).
+  static Future<dynamic> _registerForPush(List<dynamic> args) async {
+    if (kIsWeb) {
+      return {'ok': false, 'reason': 'unsupported'};
+    }
+    final token = await PushNotificationService.instance
+        .requestPermissionAndGetToken();
+    if (token == null) {
+      return {'ok': false, 'reason': 'denied'};
+    }
+    return {'ok': true, 'token': token};
   }
 
   static Future<dynamic> _haptic(List<dynamic> args) async {
@@ -194,6 +232,12 @@ const String _kBridgeShim = r'''
     copyToClipboard: call('copyToClipboard'),
     getAppInfo:      call('getAppInfo'),
     haptic:          call('haptic'),
+    registerForPush: call('registerForPush'),
+    // Inbound hooks (Dart → JS). H5 may overwrite any of these to receive
+    // events. The default is a no-op so unhandled events don't throw.
+    onPushTokenReady: function () {},
+    onPushReceived:   function () {},
+    onPushOpened:     function () {},
   };
 })();
 ''';

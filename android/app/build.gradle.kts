@@ -3,6 +3,11 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Google Services plugin parses google-services.json and injects
+    // the FCM sender ID / API key at build time. Removing this line
+    // will crash the app on startup with
+    // "Default FirebaseApp is not initialized".
+    id("com.google.gms.google-services")
 }
 
 android {

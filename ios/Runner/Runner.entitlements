@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Tells APNs which delivery topic the app should register for.
+		`development` is used when the app is signed with a development
+		provisioning profile (i.e. builds from Xcode, or `flutter run`
+		against a device). `production` is auto-substituted by Xcode when
+		archiving for App Store / Ad-hoc distribution.
+
+		If this file is not wired into the Runner target, Xcode will
+		ignore it — open ios/Runner.xcworkspace, select Runner →
+		Signing & Capabilities → + Capability → Push Notifications so
+		Xcode picks up this entitlement into project.pbxproj.
+	-->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

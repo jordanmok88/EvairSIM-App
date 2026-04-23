@@ -14,6 +14,15 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
+    <!--
+        Required on Android 13+ (API 33) so the app can show push
+        notifications. The OS will prompt the user to grant this the
+        first time we call FirebaseMessaging.requestPermission, which
+        happens inside the WebView after login (see PushNotificationService).
+        On older Android versions this permission is implicitly granted.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:label="evair_sim"
         android:name="${applicationName}"

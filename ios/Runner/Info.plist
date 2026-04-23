@@ -68,6 +68,29 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<!--
+			Declare the 'remote-notification' background mode so iOS will
+			wake the app when a silent / data-only push arrives with
+			`content-available: 1`. Our PushService sets that flag on
+			every send (see config/push.php) so foreground handling gets
+			a chance to run even when the user has the app in background.
+		-->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>remote-notification</string>
+			<string>fetch</string>
+		</array>
+		<!--
+			FirebaseAppDelegateProxyEnabled=NO tells Firebase Messaging
+			NOT to swizzle the AppDelegate automatically. The Flutter
+			runner delegate already forwards UIApplicationDelegate
+			callbacks to registered plugins, so we opt out of the
+			method-swizzle and keep the delegate chain explicit. Do not
+			remove this key without first reading
+			https://firebase.flutter.dev/docs/messaging/apple-integration.
+		-->
+		<key>FirebaseAppDelegateProxyEnabled</key>
+		<false/>
 		<key>NSCameraUsageDescription</key>
 		<string>EvairSIM uses the camera to scan QR codes on the back of your SIM card when activating a physical SIM.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
