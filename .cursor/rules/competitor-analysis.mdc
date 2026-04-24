@@ -1,0 +1,28 @@
+---
+description: "Pointer to the canonical Evair-H5 competitor dossier. Read when a task touches product strategy, pricing, home page, loyalty, or UX decisions that depend on competitor context."
+alwaysApply: false
+---
+
+# Competitor analysis (canonical location: Evair-H5)
+
+The full Airalo + EIOTCLUB dossier lives in the H5 repo at:
+
+`/Users/jordanmok/Desktop/iCloud Drive/Cursor Codes/Evair-H5/.cursor/rules/competitor-analysis.mdc`
+
+It covers site trees, page templates (country pages, product detail pages,
+cart, rewards, refill portal), hidden features (Airmoney, EiotclubCredits,
+renewals, eSIM recycling, shared plans), and a gap checklist vs. Evair.
+
+Do NOT duplicate the content here — read the H5 file when needed. Any updates
+to the dossier should be made in the H5 copy, and the cross-repo auto-save
+workflow (`auto-save-workflow.mdc`) will propagate it.
+
+## Also useful in the H5 repo
+- `ongoing-work.mdc` — what's in flight right now
+- `product-decisions.mdc` — locked-in product decisions
+- `docs/CONVERSATION_HISTORY.md` — chronological log
+
+## App-specific reminder
+The Flutter app is a thin `InAppWebView` wrapper around H5. Home-page
+redesign decisions land in H5 first; this repo updates `H5_URL` if the
+deployment branch changes.

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "729646648137",
+    "project_id": "evairsim-e8580",
+    "storage_bucket": "evairsim-e8580.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:729646648137:android:65f1ce9d51769a20dfe898",
+        "android_client_info": {
+          "package_name": "com.evairdigital.evair_sim"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkWqJMbExSLaBQu4Qk4wf0aNNxf9cTtuo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

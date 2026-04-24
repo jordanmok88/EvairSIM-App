@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../../firebase_options.dart';
+
 /// Thin wrapper around Firebase Messaging + local notifications.
 ///
 /// Responsibilities:
@@ -59,6 +61,11 @@ class PushNotificationService {
   InAppWebViewController? _webViewController;
   String? _lastToken;
   bool _initialized = false;
+  // True only once Firebase.initializeApp() has succeeded. When false, every
+  // Firebase / FCM call must be short-circuited so the app still runs in
+  // environments where GoogleService-Info.plist (iOS) or google-services.json
+  // (Android) has not yet been wired up.
+  bool _firebaseReady = false;
 
   /// Call this from `main()` BEFORE runApp. It:
   ///   1. Boots Firebase.
@@ -73,7 +80,24 @@ class PushNotificationService {
     if (_initialized || kIsWeb) return;
     _initialized = true;
 
-    await Firebase.initializeApp();
+    // Firebase is optional at boot. If GoogleService-Info.plist /
+    // google-services.json is missing or malformed we log, skip FCM setup,
+    // and let the rest of the app run. Crashing here would freeze the user
+    // on the native launch screen because main() awaits this method before
+    // runApp().
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      _firebaseReady = true;
+    } catch (e, st) {
+      debugPrint(
+        '[push] Firebase.initializeApp() failed — push disabled for this '
+        'session. Add GoogleService-Info.plist (iOS) / google-services.json '
+        '(Android) to enable notifications. Error: $e',
+      );
+      debugPrintStack(stackTrace: st, label: '[push]');
+    }
 
     const initSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/launcher_icon'),
@@ -84,22 +108,30 @@ class PushNotificationService {
         requestSoundPermission: false,
       ),
     );
-    await _fln.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: _onLocalNotificationTap,
-    );
+    try {
+      await _fln.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: _onLocalNotificationTap,
+      );
 
-    if (Platform.isAndroid) {
-      final androidImpl = _fln.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await androidImpl?.createNotificationChannel(_transactionalChannel);
-      await androidImpl?.createNotificationChannel(_marketingChannel);
+      if (Platform.isAndroid) {
+        final androidImpl = _fln.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        await androidImpl?.createNotificationChannel(_transactionalChannel);
+        await androidImpl?.createNotificationChannel(_marketingChannel);
+      }
+    } catch (e) {
+      debugPrint('[push] local notifications setup failed: $e');
     }
 
-    FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundMessagingHandler);
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleOpenedAppMessage);
-    FirebaseMessaging.instance.onTokenRefresh.listen(_onTokenRefresh);
+    if (_firebaseReady) {
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseBackgroundMessagingHandler,
+      );
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleOpenedAppMessage);
+      FirebaseMessaging.instance.onTokenRefresh.listen(_onTokenRefresh);
+    }
   }
 
   /// Give the service a handle to the live WebView controller so it can
@@ -122,6 +154,13 @@ class PushNotificationService {
   /// doesn't support push (Flutter Web).
   Future<String?> requestPermissionAndGetToken() async {
     if (kIsWeb) return null;
+    if (!_firebaseReady) {
+      debugPrint(
+        '[push] registerForPush() called but Firebase was never booted; '
+        'returning null. Ship GoogleService-Info.plist to enable push.',
+      );
+      return null;
+    }
 
     final settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,
@@ -264,7 +303,9 @@ class PushNotificationService {
     final target = current.replace(
       path: route.startsWith('/') ? route : '/$route',
     );
-    await controller.loadUrl(urlRequest: URLRequest(url: target));
+    await controller.loadUrl(
+      urlRequest: URLRequest(url: WebUri(target.toString())),
+    );
   }
 }
 

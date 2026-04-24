@@ -1,0 +1,59 @@
+---
+description: Keep H5 / APP / Admin / Backend in lockstep on shared contracts
+alwaysApply: true
+---
+
+# Cross-repo sync (H5 / APP / Admin / Backend)
+
+The Evair product is split across 4 repos that share contracts. When touching
+anything listed below, check the other repos BEFORE finishing the change.
+
+| Repo                                    | Path                                                        | Role                                |
+|-----------------------------------------|-------------------------------------------------------------|-------------------------------------|
+| EvairSIM-App (this one)                 | `~/Development/EvairSIM-App`                                | Flutter native shell (iOS/Android)  |
+| Evair-H5                                | `.../Cursor Codes/Evair-H5`                                 | React H5 shop (runs inside APP WebView) |
+| Evair-Laravel                           | `.../Cursor Codes/Evair-Laravel`                            | PHP API + DB (source of truth)      |
+| admin                                   | `.../Cursor Codes/admin`                                    | Sales / ops panel (Vue)             |
+
+## Post-WebView-migration context
+
+The APP is a thin native shell: most of the UI (shop, checkout, profile, etc.)
+runs as H5 inside a full-screen WebView. Native code handles only bridge
+features (push, deep links, native storage, platform auth). This means:
+
+- Changes in `Evair-H5` ship to the APP automatically on H5 deploy.
+- Flutter changes affect only the native bridge / shell / platform features.
+- The H5 ↔ native bridge contract lives at `docs/native-bridge-api.md` and
+  `lib/core/bridge/native_bridge.dart` — treat it as a hard contract.
+
+## When to cross-check
+
+1. **Bridge API changes** (`window.evair.*` methods, message channel shapes) —
+   update `Evair-H5` callers in the same pass, usually in `hooks/` or
+   `utils/nativeBridge*`.
+2. **Backend API calls** in Flutter — mirror the H5 call site for the same
+   endpoint; the backend is `Evair-Laravel/app/Http/Controllers/Api/**`.
+3. **Shop catalogue fetch** — keep `size=5000` + supplier region code parsing
+   in lockstep with H5's `services/esimApi.ts :: fetchPackagesFromBackstage`.
+   If the two clients diverge on page size or filter semantics, per-country
+   plan counts will differ between H5 and APP.
+4. **Auth / token / user storage** — the APP writes tokens that H5 reads via
+   the bridge. Schema changes affect both sides.
+5. **Deep link / push / QR scan flows** — each has a native side and an H5
+   side; neither alone is enough.
+
+## Workflow
+
+- State up-front which repos the change touches and why.
+- Make edits in every affected repo in one pass.
+- Validate with the APP preview: `http://localhost:3000#app-preview` exercises
+  the H5 shell without the native bridge, while `flutter run -d <sim>
+  --dart-define=H5_URL=http://localhost:3000` runs the real shell.
+- If a change cannot be fully synced, call it out and list TODOs for the
+  other repos.
+
+## Known hot zones (regressions have happened here)
+
+- Shop catalogue pagination + region-code parsing — must match H5.
+- `window.evair.isNative` detection — H5 uses this to suppress dev-only
+  banners; breaking the injection timing re-introduces them in the APP.
