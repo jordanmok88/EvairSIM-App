@@ -57,3 +57,40 @@ features (push, deep links, native storage, platform auth). This means:
 - Shop catalogue pagination + region-code parsing — must match H5.
 - `window.evair.isNative` detection — H5 uses this to suppress dev-only
   banners; breaking the injection timing re-introduces them in the APP.
+
+## Cross-repo work block: Activation Funnel (SHIPPED 2026-04-25)
+
+The customer-facing activation + top-up funnel is **fully implemented across
+all 4 repos**. Single source of truth: **`Evair-H5/docs/ACTIVATION_FUNNEL.md`**.
+Status detail: **`Evair-H5/.cursor/rules/ongoing-work.mdc`**.
+
+### ⚠️ Naming disambiguation
+
+| When you see... | It means... |
+|---|---|
+| `feat(activation-funnel):` in commits | Jordan's H5-driven customer funnel. Originally called "Phase 1" but renamed 2026-04-25. |
+| `feat(phase1):` / `feat(phase2):` | China-team backend migration phases — UNRELATED to Jordan's product Phases 0-5. The Flutter side's `feat(phase2): token-refresh interceptor + cross-platform contract doc` is the China team's phase 2, not Jordan's. |
+| "Phase 1" in `Evair-H5/docs/EVAIRSIM_ROADMAP_ZH.pdf` | Jordan's _original_ product Phase 1 (= activation funnel, now shipped). PDF is dated 2026-04-25 and uses pre-rename naming. |
+
+### Flutter-side state for this funnel
+- **Nothing native to ship.** The funnel's customer surfaces (`/activate`,
+  `/top-up`, `/app/my-sims` auto-renew toggle) all live in H5 and reach
+  the APP automatically via the WebView shell.
+- `h5Url` default in `lib/core/constants/app_constants.dart` already points
+  at production (`https://evairdigital.com/app`, set 2026-04-25).
+- Latest related commits: `dd005c1 feat(activation-funnel): Step 5+6 — TopUpPage,
+  my-sims auto-renew toggle, RenewExpiringSims cron + reminders` (mirrors H5
+  changes for the WebView), `ebc787f feat(phase2): token-refresh interceptor +
+  cross-platform contract doc` (China team's phase 2 work).
+- The H5 changes assume the Flutter token-refresh / auth-bridge contract from
+  `Evair-H5/docs/CROSS_PLATFORM_CONTRACT.md` — when adding new H5↔native
+  bridge calls, edit that doc first.
+
+### China team's `feature/evairsim-jordan` branch — DO NOT MERGE
+The China team has a parallel Flutter branch with 25+ commits we don't have
+(full native app + Reverb live chat). We kept our WebView-shell direction
+and ported the _patterns_ worth keeping without merging their code. Decision:
+ask the China team to rebase their work on top of our WebView shell instead
+of merging from theirs. `save-all.sh` now pushes Flutter to
+`feature/jordan-webview-shell` on Aliyun (renamed in `scripts/save.sh`) so
+we no longer collide with their branch.
