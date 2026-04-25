@@ -14,9 +14,11 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ICLOUD_BACKUP="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/EvairSIM-App-Backup"
 # Aliyun policy: push `main` to a non-overlapping branch so we never touch
-# the China team's `feature/pccw` branch.
+# the China team's branches. `feature/evairsim-jordan` was historically
+# shared with them; they are now using it for the native app + chat work,
+# so our WebView shell lives on a branch that is unambiguously ours.
 ALIYUN_REMOTE="aliyun"
-ALIYUN_BRANCH="feature/evairsim-jordan"
+ALIYUN_BRANCH="feature/jordan-webview-shell"
 
 cd "$PROJECT_DIR"
 
