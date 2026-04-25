@@ -16,13 +16,14 @@ abstract class AppConstants {
   ///   1. Do NOT point this at `evair.zhhwxt.cn` — that host only runs
   ///      Laravel (the API) and does not serve the H5 SPA. Pointing the
   ///      native shell there shows Laravel's stock `welcome.blade.php`.
-  ///   2. `https://evair-h5.netlify.app/` serves the `main` branch, which
-  ///      may lag behind active development. The live "new version" with
-  ///      Amazon storefront CTA etc. currently lives on the
-  ///      `feature/api-integration` branch deploy. Keep this default in
-  ///      sync with whichever branch is the de-facto production tip; once
-  ///      `feature/api-integration` is merged into `main`, flip this back
-  ///      to `https://evair-h5.netlify.app/app`.
+  ///   2. The production domain is now `https://evairdigital.com` (DNS
+  ///      cutover completed 2026-04-24, see Evair-H5
+  ///      `docs/CONVERSATION_HISTORY.md` Session 3b §4). The legacy
+  ///      Netlify subdomains `evair-h5.netlify.app` and
+  ///      `feature-api-integration--evair-h5.netlify.app` still work for
+  ///      preview / branch deploys but should not be the native shell's
+  ///      default — they aren't the URL we tell customers and they won't
+  ///      benefit from custom-domain SSL/HSTS/cache config.
   ///   3. The URL MUST end in `/app` (Phase 0 of the 2026-04-24 marketing/
   ///      app split). Browser visitors land at `/` and hit the marketing
   ///      surface; the native shell goes straight to `/app` so it never
@@ -31,7 +32,7 @@ abstract class AppConstants {
   ///      `Evair-H5/.cursor/rules/product-decisions.mdc` §Architecture.
   static const String h5Url = String.fromEnvironment(
     'H5_URL',
-    defaultValue: 'https://feature-api-integration--evair-h5.netlify.app/app',
+    defaultValue: 'https://evairdigital.com/app',
   );
 
   // Company (used for error/fallback screens only).
