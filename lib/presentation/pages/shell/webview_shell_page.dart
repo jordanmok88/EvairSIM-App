@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -9,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/bridge/native_bridge.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/shell/h5_launch_uri.dart';
 
 /// The one and only page of the native shell.
 ///
@@ -37,6 +39,10 @@ class WebViewShellPage extends StatefulWidget {
 class _WebViewShellPageState extends State<WebViewShellPage> {
   InAppWebViewController? _controller;
   PullToRefreshController? _pullToRefresh;
+  StreamSubscription<Uri>? _incomingLinkSubscription;
+  late final Future<String> _bootUrlFuture;
+  /// [uriLinkStream] may emit before [onWebViewCreated] wires [_controller].
+  String? _pendingIncomingUrl;
 
   // `_isLoading` gates the splash overlay; `_hasError` gates the offline
   // retry screen. Kept as separate bits so we can show an error *after*
@@ -56,12 +62,27 @@ class _WebViewShellPageState extends State<WebViewShellPage> {
   @override
   void initState() {
     super.initState();
+    _bootUrlFuture = _resolveBootH5Url();
     _splashStart = DateTime.now();
     // Pull-to-refresh is iOS bouncy / Android Material. `onRefresh` just
     // triggers a reload of the current URL — H5 handles its own data
     // freshness from there. The Flutter-Web backend of
     // flutter_inappwebview does NOT implement pull-to-refresh, so we
     // skip it there to avoid `UnimplementedError` at runtime.
+    if (!kIsWeb) {
+      final appLinks = AppLinks();
+      _incomingLinkSubscription = appLinks.uriLinkStream.listen((uri) {
+        final url = incomingH5ShellUrlString(uri);
+        if (url == null || !mounted) return;
+        final c = _controller;
+        if (c == null) {
+          _pendingIncomingUrl = url;
+          return;
+        }
+        c.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
+      });
+    }
+
     if (!kIsWeb) {
       _pullToRefresh = PullToRefreshController(
         settings: PullToRefreshSettings(color: const Color(0xFFFF6600)),
@@ -95,6 +116,26 @@ class _WebViewShellPageState extends State<WebViewShellPage> {
     }
   }
 
+  /// Cold start may be triggered by HTTPS deep links (`/app#esim`,
+  /// `/app/travel-esim/jp`). [AppLinks] exposes that URL; falling back keeps
+  /// behaviour identical to builds before deep-link filtering.
+  Future<String> _resolveBootH5Url() async {
+    if (kIsWeb) return AppConstants.h5Url;
+    try {
+      final initial = await AppLinks().getInitialLink();
+      final url = incomingH5ShellUrlString(initial);
+      if (url != null && url.isNotEmpty) return url;
+    } catch (e, st) {
+      debugPrint('[WebViewShellPage] getInitialLink: $e\n$st');
+    }
+    return AppConstants.h5Url;
+  }
+
+  @override
+  void dispose() {
+    _incomingLinkSubscription?.cancel();
+    super.dispose();
+  }
 
   Future<bool> _handleBackPress() async {
     final controller = _controller;
@@ -135,7 +176,10 @@ class _WebViewShellPageState extends State<WebViewShellPage> {
           top: false,
           child: Stack(
             children: [
-              _buildWebView(),
+              _BootstrappedWebView(
+                bootUrlFuture: _bootUrlFuture,
+                buildWebView: _buildWebViewWithInitialUrl,
+              ),
               if (_isLoading) const _SplashOverlay(),
               if (_hasError)
                 _ErrorOverlay(
@@ -158,9 +202,9 @@ class _WebViewShellPageState extends State<WebViewShellPage> {
     );
   }
 
-  Widget _buildWebView() {
+  Widget _buildWebViewWithInitialUrl(String initialUrl) {
     return InAppWebView(
-      initialUrlRequest: URLRequest(url: WebUri(AppConstants.h5Url)),
+      initialUrlRequest: URLRequest(url: WebUri(initialUrl)),
       initialSettings: InAppWebViewSettings(
         javaScriptEnabled: true,
         mediaPlaybackRequiresUserGesture: false,
@@ -182,6 +226,14 @@ class _WebViewShellPageState extends State<WebViewShellPage> {
       onWebViewCreated: (controller) {
         _controller = controller;
         NativeBridge.register(controller);
+        final pending = _pendingIncomingUrl;
+        _pendingIncomingUrl = null;
+        if (pending != null && pending.isNotEmpty) {
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            controller.loadUrl(urlRequest: URLRequest(url: WebUri(pending)));
+          });
+        }
       },
       onLoadStart: (_, url) {
         if (!mounted) return;
@@ -315,6 +367,35 @@ class _WebViewShellPageState extends State<WebViewShellPage> {
     return 'Mozilla/5.0 (Linux; Android 13; Pixel 7) '
         'AppleWebKit/537.36 (KHTML, like Gecko) '
         'Chrome/124.0.0.0 Mobile Safari/537.36 EvairSIM/1.0';
+  }
+}
+
+/// Waits for [AppLinks.getInitialLink] (if any) before mounting the WebView so
+/// the first frame loads `…/app#esim` (or `/app/travel-esim/jp`) instead of
+/// dropping the tail of the marketing deep link.
+class _BootstrappedWebView extends StatelessWidget {
+  const _BootstrappedWebView({
+    required this.bootUrlFuture,
+    required this.buildWebView,
+  });
+
+  final Future<String> bootUrlFuture;
+  final Widget Function(String initialUrl) buildWebView;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: bootUrlFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox.expand();
+        }
+        final url = snapshot.hasError
+            ? AppConstants.h5Url
+            : (snapshot.data ?? AppConstants.h5Url);
+        return buildWebView(url);
+      },
+    );
   }
 }
 

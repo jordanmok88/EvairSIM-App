@@ -33,6 +33,7 @@ dependencies:
 
   # Misc
   intl: ^0.20.2
+  app_links: ^7.0.0
 
 dev_dependencies:
   flutter_test:
